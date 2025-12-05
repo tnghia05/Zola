@@ -1289,3 +1289,105 @@ export const searchMusicApi = async (query: string): Promise<iTunesTrack[]> => {
     return [];
   }
 };
+
+// Reel Types
+export type Reel = {
+  _id: string;
+  authorId: string;
+  author?: {
+    _id: string;
+    name: string;
+    avatar?: string;
+    email?: string;
+    username?: string;
+  };
+  videoUrl: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  duration?: number;
+  visibility: "PUBLIC" | "FRIENDS" | "ONLY_ME";
+  hashtags?: string[];
+  taggedUsers?: Array<{
+    _id: string;
+    name: string;
+    avatar?: string;
+    username?: string;
+  }>;
+  likeCount: number;
+  commentCount: number;
+  viewCount: number;
+  reactionCounts?: Partial<Record<ReactionType, number>>;
+  currentUserReaction?: ReactionType | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReelsFeedResponse = {
+  items: Reel[];
+  nextCursor: string | null;
+  hasNext: boolean;
+};
+
+// Reel APIs
+export const createReelApi = async (payload: {
+  videoUrl: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  duration?: number;
+  visibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME";
+  taggedUsers?: string[];
+}) => {
+  const res = await api.post<Reel>("/reels", payload);
+  return res.data;
+};
+
+export const getReelsFeedApi = async (cursor?: string, limit: number = 10) => {
+  const params: any = { limit };
+  if (cursor) params.cursor = cursor;
+  const res = await api.get<ReelsFeedResponse>("/reels", { params });
+  return res.data;
+};
+
+export const getReelByIdApi = async (reelId: string) => {
+  const res = await api.get<Reel>(`/reels/${reelId}`);
+  return res.data;
+};
+
+export const getUserReelsApi = async (userId: string, cursor?: string, limit: number = 20) => {
+  const params: any = { limit };
+  if (cursor) params.cursor = cursor;
+  const res = await api.get<ReelsFeedResponse>(`/reels/users/${userId}`, { params });
+  return res.data;
+};
+
+export const likeReelApi = async (reelId: string, type: ReactionType = "LIKE") => {
+  const res = await api.post<{ message: string; liked: boolean; type: ReactionType }>(
+    `/reels/${reelId}/like`,
+    { type }
+  );
+  return res.data;
+};
+
+export const unlikeReelApi = async (reelId: string) => {
+  const res = await api.delete<{ message: string; liked: boolean }>(`/reels/${reelId}/like`);
+  return res.data;
+};
+
+export const checkReelLikedApi = async (reelId: string) => {
+  const res = await api.get<{ liked: boolean; type?: ReactionType | null }>(
+    `/reels/${reelId}/liked`
+  );
+  return res.data;
+};
+
+export const deleteReelApi = async (reelId: string) => {
+  const res = await api.delete<{ message: string }>(`/reels/${reelId}`);
+  return res.data;
+};
+
+export const syncReelsFromPostsApi = async () => {
+  const res = await api.post<{ message: string; createdCount: number; totalPostsWithVideo: number }>(
+    "/reels/sync"
+  );
+  return res.data;
+};

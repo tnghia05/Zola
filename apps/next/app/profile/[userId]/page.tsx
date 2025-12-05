@@ -15,6 +15,8 @@ import {
   getUserPhotosApi,
   updateProfileApi,
   uploadMediaApi,
+  getUserReelsApi,
+  Reel,
 } from "@zola/app/api";
 import { useComments } from "@zola/app/hooks/useSocial";
 import { AppLayout } from "@zola/app/components/AppLayout";
@@ -47,13 +49,17 @@ const Profile = () => {
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlockedYou, setHasBlockedYou] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "photos" | "about" | "friends">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "photos" | "about" | "friends" | "reels">("posts");
   const [activePhotoTab, setActivePhotoTab] = useState<"authored" | "tagged">("authored");
   const [aboutCategory, setAboutCategory] = useState<"overview" | "work" | "places" | "contact" | "relationship" | "details">("overview");
   const [activeFriendsTab, setActiveFriendsTab] = useState<"all" | "recent" | "birthdays" | "college" | "city" | "hometown" | "following">("all");
   const [friendsSearchQuery, setFriendsSearchQuery] = useState("");
   const [photosAuthored, setPhotosAuthored] = useState<Array<{ postId: string; url: string }>>([]);
   const [photosTagged, setPhotosTagged] = useState<Array<{ postId: string; url: string }>>([]);
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [reelsLoading, setReelsLoading] = useState(false);
+  const [reelsNextCursor, setReelsNextCursor] = useState<string | null>(null);
+  const [reelsHasNext, setReelsHasNext] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     bio: "",
@@ -262,8 +268,31 @@ const Profile = () => {
     if (activeTab === "photos" && posts.length > 0 && photosAuthored.length === 0 && photosTagged.length === 0) {
       loadPhotos();
     }
+    if (activeTab === "reels" && reels.length === 0 && !reelsLoading) {
+      loadReels();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts, activeTab]);
+
+  const loadReels = async (cursor?: string) => {
+    if (reelsLoading) return;
+    setReelsLoading(true);
+    try {
+      const data = await getUserReelsApi(targetUserId, cursor);
+      if (cursor) {
+        setReels((prev) => [...prev, ...data.items]);
+      } else {
+        setReels(data.items);
+      }
+      setReelsNextCursor(data.nextCursor);
+      setReelsHasNext(data.hasNext);
+    } catch (error) {
+      console.error("Failed to load reels:", error);
+      setReels([]);
+    } finally {
+      setReelsLoading(false);
+    }
+  };
 
   const loadFriends = async () => {
     try {
@@ -908,6 +937,12 @@ const Profile = () => {
                 onClick={() => setActiveTab("photos")}
               >
                 Ảnh / Albums
+              </button>
+              <button
+                className={`profile-tab ${activeTab === "reels" ? "profile-tab--active" : ""}`}
+                onClick={() => setActiveTab("reels")}
+              >
+                Reels
               </button>
             </div>
           </div>
@@ -1608,6 +1643,95 @@ const Profile = () => {
                 })()}
               </div>
             )}
+
+            {activeTab === "reels" && (
+              <div className="profile-reels-tab">
+                <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: "16px", padding: "0 16px" }}>Reels</h2>
+                {reelsLoading && reels.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px", color: "#B0B3B8" }}>
+                    Đang tải...
+                  </div>
+                ) : reels.length > 0 ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "16px", padding: "0 16px" }}>
+                    {reels.map((reel) => (
+                      <div
+                        key={reel._id}
+                        onClick={() => router.push(`/reels?reel=${reel._id}`)}
+                        style={{
+                          cursor: "pointer",
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          background: "#242526",
+                          position: "relative",
+                          aspectRatio: "9/16",
+                        }}
+                      >
+                        {reel.thumbnailUrl ? (
+                          <img
+                            src={reel.thumbnailUrl}
+                            alt={reel.caption || "Reel"}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <video
+                            src={reel.videoUrl}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            muted
+                            playsInline
+                          />
+                        )}
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+                            padding: "12px",
+                            color: "white",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                            <span>▶</span>
+                            <span>{reel.viewCount || 0} lượt xem</span>
+                          </div>
+                          {reel.caption && (
+                            <div style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {reel.caption}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "40px", color: "#B0B3B8" }}>
+                    {isSelf ? "Bạn chưa có reel nào." : "Người dùng này chưa có reel nào."}
+                  </div>
+                )}
+                {reelsHasNext && (
+                  <div style={{ textAlign: "center", padding: "16px" }}>
+                    <button
+                      onClick={() => loadReels(reelsNextCursor || undefined)}
+                      disabled={reelsLoading}
+                      style={{
+                        padding: "8px 16px",
+                        background: "#1877F2",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: reelsLoading ? "not-allowed" : "pointer",
+                        opacity: reelsLoading ? 0.6 : 1,
+                      }}
+                    >
+                      {reelsLoading ? "Đang tải..." : "Tải thêm"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1954,7 +2078,13 @@ const PostCard = ({ post, navigate }: { post: any; navigate: (path: string) => v
         <div className="feed-post-media">
           {post.media.map((m: any, i: number) => (
             <div key={i} className="feed-post-media-item">
-              <img src={m.url} alt="" className="feed-post-image" />
+              {m.type === "image" || (typeof m.type === "string" && m.type.startsWith("image/")) ? (
+                <img src={m.url} alt="" className="feed-post-image" />
+              ) : m.type === "video" || (typeof m.type === "string" && m.type.startsWith("video/")) ? (
+                <video src={m.url} controls className="feed-post-video" style={{ width: "100%", maxHeight: "600px", borderRadius: "8px" }} />
+              ) : (
+                <img src={m.url} alt="" className="feed-post-image" />
+              )}
             </div>
           ))}
         </div>

@@ -20,6 +20,7 @@ import { RightSidebar } from "../../components/RightSidebar";
 import { FacebookNavbarWeb } from "../../components/FacebookNavbar.web";
 import { CreatePostModal } from "../../components/CreatePostModal";
 import { CreateStoryModal } from "../../components/CreateStoryModal";
+import { CreateReelModal } from "../../components/CreateReelModal";
 import { ReportPostModal } from "../../components/ReportPostModal";
 import { StoriesBar } from "../../components/StoriesBar";
 import { StoryViewer, StoryPointer } from "../../components/StoryViewer";
@@ -67,6 +68,7 @@ const FeedScreenContent = () => {
   const [isLoadingContacts, setIsLoadingContacts] = useState(true);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [isCreateStoryModalOpen, setIsCreateStoryModalOpen] = useState(false);
+  const [isCreateReelModalOpen, setIsCreateReelModalOpen] = useState(false);
   const [viewerState, setViewerState] = useState<StoryPointer | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const [reportingPost, setReportingPost] = useState<Post | null>(null);
@@ -396,6 +398,32 @@ const FeedScreenContent = () => {
             placeholder={currentUser ? `Nghĩ gì thế, ${currentUser.name}?` : "Nghĩ gì thế hôm nay?"}
           />
         </div>
+        <div style={{ display: "flex", gap: "8px", padding: "8px 16px", borderTop: "1px solid #3a3b3c" }}>
+          <button
+            onClick={() => setIsCreateReelModalOpen(true)}
+            style={{
+              flex: 1,
+              padding: "8px",
+              background: "transparent",
+              border: "none",
+              color: "#e4e6eb",
+              fontSize: "14px",
+              fontWeight: 600,
+              cursor: "pointer",
+              borderRadius: "6px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              transition: "background 0.2s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#3a3b3c")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <span style={{ fontSize: "20px" }}>🎬</span>
+            <span>Reel</span>
+          </button>
+        </div>
       </section>
 
       {/* Posts */}
@@ -445,6 +473,15 @@ const FeedScreenContent = () => {
           setDraft("");
         }}
         onSubmit={handleCreatePost}
+        currentUser={currentUser}
+      />
+      <CreateReelModal
+        isOpen={isCreateReelModalOpen}
+        onClose={() => setIsCreateReelModalOpen(false)}
+        onSubmit={async () => {
+          // Refresh feed or navigate to reels page
+          window.location.href = "/reels";
+        }}
         currentUser={currentUser}
       />
       <CreateStoryModal

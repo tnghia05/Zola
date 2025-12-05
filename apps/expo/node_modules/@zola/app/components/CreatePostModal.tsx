@@ -123,9 +123,11 @@ export const CreatePostModal = ({
     // Validate files
     const validFiles: File[] = [];
     for (const file of files) {
-      // Check file size (max 20MB)
-      if (file.size > 20 * 1024 * 1024) {
-        alert(`File ${file.name} quá lớn (tối đa 20MB)`);
+      // Check file size (max 100MB for video, 20MB for image)
+      const maxSize = file.type.startsWith("video/") ? 100 * 1024 * 1024 : 20 * 1024 * 1024;
+      if (file.size > maxSize) {
+        const maxSizeMB = file.type.startsWith("video/") ? 100 : 20;
+        alert(`File ${file.name} quá lớn (tối đa ${maxSizeMB}MB)`);
         continue;
       }
       
@@ -299,18 +301,26 @@ export const CreatePostModal = ({
 
           {mediaPreviews.length > 0 && (
             <div className="create-post-modal-media-preview">
-              {mediaPreviews.map((preview, index) => (
-                <div key={index} className="create-post-modal-media-item">
-                  <img src={preview} alt={`Preview ${index + 1}`} />
-                  <button
-                    className="create-post-modal-media-remove"
-                    onClick={() => removeMedia(index)}
-                    type="button"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {mediaPreviews.map((preview, index) => {
+                const file = selectedMedia[index];
+                const isVideo = file?.type.startsWith("video/");
+                return (
+                  <div key={index} className="create-post-modal-media-item">
+                    {isVideo ? (
+                      <video src={preview} controls style={{ width: "100%", maxHeight: "400px" }} />
+                    ) : (
+                      <img src={preview} alt={`Preview ${index + 1}`} />
+                    )}
+                    <button
+                      className="create-post-modal-media-remove"
+                      onClick={() => removeMedia(index)}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
