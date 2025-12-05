@@ -214,8 +214,8 @@ const FeedScreenContent = () => {
     }
   }, [stories, viewerState]);
 
-  const handleCreatePost = async (content: string, media: any[], visibility?: "PUBLIC" | "FRIENDS") => {
-    await createPost(content, media, visibility);
+  const handleCreatePost = async (content: string, media: any[], visibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME", taggedUsers?: string[]) => {
+    await createPost(content, media, visibility, taggedUsers);
   };
 
   const handleCreateStory = async (payload: {

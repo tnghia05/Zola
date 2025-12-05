@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Post, ReactionType } from "../api";
+import { Post, ReactionType, getCurrentUserId, getUserById } from "../api";
 import { useComments } from "../hooks/useSocial";
 import { CommentIcon } from "./CommentIcon";
 import { ShareIcon } from "./ShareIcon";
+import { SharePostModal } from "./SharePostModal";
 
 type PostWithSavedMeta = Post & { savedAt?: string };
 
@@ -46,6 +47,12 @@ export const PostCard = ({
   const [pickerVisible, setPickerVisible] = useState(false);
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const pickerTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    _id: string;
+    name: string;
+    avatar?: string;
+  } | null>(null);
 
   const author = post.author || { name: `User ${post.authorId}`, _id: post.authorId };
   const canReact = typeof onSelectReaction === "function";
@@ -149,6 +156,27 @@ export const PostCard = ({
     router.push(`/profile/${author._id}`);
   };
 
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const userId = await getCurrentUserId();
+        if (userId) {
+          const user = await getUserById(userId);
+          setCurrentUser({
+            _id: user._id,
+            name: user.name || user.email || "User",
+            avatar: user.avatar,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load current user:", error);
+      }
+    };
+    if (showShareModal) {
+      loadCurrentUser();
+    }
+  }, [showShareModal]);
+
   return (
     <article className="feed-card" style={{ marginTop: 8 }}>
       <div className="feed-post-header">
@@ -184,6 +212,37 @@ export const PostCard = ({
                   minute: "2-digit",
                 })}
               </span>
+              {post.visibility && (
+                <span className="feed-post-visibility-icon" title={
+                  post.visibility === "PUBLIC" ? "Công khai" :
+                  post.visibility === "FRIENDS" ? "Bạn bè" :
+                  "Chỉ mình tôi"
+                }>
+                  {post.visibility === "PUBLIC" ? "🌐" :
+                   post.visibility === "FRIENDS" ? "👥" :
+                   "🔒"}
+                </span>
+              )}
+              {post.taggedUsers && post.taggedUsers.length > 0 && (
+                <span className="feed-post-tagged-info">
+                  cùng với{" "}
+                  {post.taggedUsers.map((user, i) => (
+                    <span key={user._id}>
+                      <a
+                        href={`/profile/${user._id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          router.push(`/profile/${user._id}`);
+                        }}
+                        className="feed-post-tagged-link"
+                      >
+                        {user.name}
+                      </a>
+                      {i < post.taggedUsers!.length - 1 && ", "}
+                    </span>
+                  ))}
+                </span>
+              )}
               {savedAtLabel && (
                 <span className="feed-post-meta feed-post-meta--saved">
                   Đã lưu lúc {savedAtLabel}
@@ -222,7 +281,160 @@ export const PostCard = ({
           )}
         </div>
       </div>
-      <div className="feed-post-content">{post.content}</div>
+      {post.sharedFrom && (
+        <>
+          {/* Hiển thị comment của người share (nếu có và khác default) */}
+          {post.content && post.content !== "Đã chia sẻ bài viết" && (
+            <div className="feed-post-content" style={{ marginBottom: "var(--spacing-md)" }}>
+              {post.content.split(/(#\w+)/g).map((part, i) => {
+                if (part.startsWith('#')) {
+                  const tag = part.substring(1);
+                  return (
+                    <a
+                      key={i}
+                      href={`/hashtag/${encodeURIComponent(tag)}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push(`/hashtag/${encodeURIComponent(tag)}`);
+                      }}
+                      className="feed-post-hashtag"
+                    >
+                      {part}
+                    </a>
+                  );
+                }
+                return <span key={i}>{part}</span>;
+              })}
+            </div>
+          )}
+          
+          {/* Hiển thị bài viết gốc được share - giống Facebook */}
+          <div 
+            className="feed-post-shared-container"
+            onClick={() => {
+              if (typeof post.sharedFrom === 'object' && post.sharedFrom !== null && (post.sharedFrom as any)._id) {
+                // Có thể navigate đến post gốc nếu cần
+              }
+            }}
+            style={{ cursor: 'pointer' }}
+          >
+            {typeof post.sharedFrom === 'object' && post.sharedFrom !== null ? (
+              <>
+                {/* Header với avatar + tên + thời gian */}
+                <div className="feed-post-shared-header">
+                  <div 
+                    className="feed-post-avatar"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if ((post.sharedFrom as any).authorId) {
+                        router.push(`/profile/${(post.sharedFrom as any).authorId}`);
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {post.sharedFrom.author && (post.sharedFrom.author as any).avatar ? (
+                      <img src={(post.sharedFrom.author as any).avatar} alt={(post.sharedFrom.author as any).name} />
+                    ) : (
+                      <div className="feed-post-avatar-initials">
+                        {(post.sharedFrom.author as any)?.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="feed-post-shared-header-info">
+                    <div 
+                      className="feed-post-author-name"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if ((post.sharedFrom as any).authorId) {
+                          router.push(`/profile/${(post.sharedFrom as any).authorId}`);
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {(post.sharedFrom.author as any)?.name || "User"}
+                    </div>
+                    <div className="feed-post-meta">
+                      {new Date(post.sharedFrom.createdAt).toLocaleDateString("vi-VN", {
+                        day: "numeric",
+                        month: "long",
+                      })}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Content */}
+                {post.sharedFrom.content && (
+                  <div className="feed-post-shared-content">
+                    {post.sharedFrom.content.split(/(#\w+)/g).map((part: string, i: number) => {
+                      if (part.startsWith('#')) {
+                        const tag = part.substring(1);
+                        return (
+                          <a
+                            key={i}
+                            href={`/hashtag/${encodeURIComponent(tag)}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/hashtag/${encodeURIComponent(tag)}`);
+                            }}
+                            className="feed-post-hashtag"
+                          >
+                            {part}
+                          </a>
+                        );
+                      }
+                      return <span key={i}>{part}</span>;
+                    })}
+                  </div>
+                )}
+                
+                {/* Media */}
+                {post.sharedFrom.media && post.sharedFrom.media.length > 0 && (
+                  <div className="feed-post-media">
+                    {post.sharedFrom.media.map((m: any, i: number) => (
+                      <div key={i} className="feed-post-media-item">
+                        {m.type === "image" ? (
+                          <img src={m.url} alt="" className="feed-post-image" />
+                        ) : m.type === "video" ? (
+                          <video src={m.url} controls className="feed-post-video" />
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="feed-post-shared-placeholder">
+                📤 Đã chia sẻ bài viết
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      
+      {/* Hiển thị content bình thường nếu không phải shared post */}
+      {!post.sharedFrom && (
+        <div className="feed-post-content">
+          {post.content.split(/(#\w+)/g).map((part, i) => {
+            if (part.startsWith('#')) {
+              const tag = part.substring(1);
+              return (
+                <a
+                  key={i}
+                  href={`/hashtag/${encodeURIComponent(tag)}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.push(`/hashtag/${encodeURIComponent(tag)}`);
+                  }}
+                  className="feed-post-hashtag"
+                >
+                  {part}
+                </a>
+              );
+            }
+            return <span key={i}>{part}</span>;
+          })}
+        </div>
+      )}
       {post.media && post.media.length > 0 && (
         <div className="feed-post-media">
           {post.media.map((m, i) => (
@@ -292,9 +504,13 @@ export const PostCard = ({
           <span>Bình luận</span>
         </button>
 
-        <button className="feed-post-action-btn" type="button">
+        <button 
+          className="feed-post-action-btn" 
+          type="button"
+          onClick={() => setShowShareModal(true)}
+        >
           <ShareIcon size={18} />
-          <span>Chia sẻ</span>
+          <span>Chia sẻ {post.shareCount ? `(${post.shareCount})` : ""}</span>
         </button>
       </div>
 
@@ -344,6 +560,19 @@ export const PostCard = ({
             />
           </div>
         </div>
+      )}
+
+      {showShareModal && (
+        <SharePostModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          postId={post._id}
+          onShareSuccess={() => {
+            // Refresh or update post
+            window.location.reload();
+          }}
+          currentUser={currentUser}
+        />
       )}
     </article>
   );

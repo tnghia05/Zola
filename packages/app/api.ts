@@ -508,6 +508,77 @@ export const getFriends = async () => {
   return res.data;
 };
 
+export const blockUserApi = async (userId: string) => {
+  const res = await api.post<{ message: string; blocked: boolean }>(`/users/${userId}/block`);
+  return res.data;
+};
+
+export const unblockUserApi = async (userId: string) => {
+  const res = await api.delete<{ message: string; blocked: boolean }>(`/users/${userId}/block`);
+  return res.data;
+};
+
+export const getBlockedUsersApi = async () => {
+  const res = await api.get<{ blockedUsers: Array<{
+    _id: string;
+    name: string;
+    avatar?: string;
+    email?: string;
+    username?: string;
+    blockedAt: string;
+  }> }>("/users/blocked");
+  return res.data;
+};
+
+export const getBlockStatusApi = async (userId: string) => {
+  const res = await api.get<{ isBlocked: boolean; hasBlockedYou: boolean }>(`/users/${userId}/block-status`);
+  return res.data;
+};
+
+export const unfriendUserApi = async (userId: string) => {
+  const res = await api.delete<{ message: string }>(`/social/friends/${userId}`);
+  return res.data;
+};
+
+// Photos from posts (author or tagged)
+export const getUserPhotosApi = async (
+  userId: string,
+  type: "authored" | "tagged" = "authored"
+) => {
+  try {
+    const res = await api.get<{ items: Array<{ postId: string; media: any[]; createdAt: string }> }>(
+      `/social/users/${userId}/photos`,
+      { params: { type } }
+    );
+    return res.data;
+  } catch (error: any) {
+    // Nếu backend chưa có route /photos (404), trả về rỗng để frontend fallback sang posts
+    if (error?.response?.status === 404) {
+      return { items: [] };
+    }
+    throw error;
+  }
+};
+
+export const updateProfileApi = async (payload: {
+  bio?: string;
+  works?: string[];
+  colleges?: string[];
+  highSchools?: string[];
+  currentCity?: string;
+  hometown?: string;
+  relationshipStatus?: string;
+  phone?: string;
+  instagram?: string;
+  facebook?: string;
+  website?: string;
+  coverImage?: string;
+  avatar?: string;
+}) => {
+  const res = await api.patch(`/users/me/profile`, payload);
+  return res.data;
+};
+
 // Feed bài viết của 1 user (trang profile)
 export const getUserPostsApi = async (
   userId: string,
@@ -620,6 +691,18 @@ export type UserProfile = {
 	avatar?: string;
 	onlineStatus?: string;
 	lastSeen?: string;
+	bio?: string;
+	works?: string[];
+	colleges?: string[];
+	highSchools?: string[];
+	currentCity?: string;
+	hometown?: string;
+	relationshipStatus?: string;
+	phone?: string;
+	instagram?: string;
+	facebook?: string;
+	website?: string;
+	coverImage?: string;
 };
 
 export const getUsersByIds = async (userIds: string[]) => {
@@ -848,7 +931,17 @@ export type Post = {
   };
   content: string;
   media?: PostMedia[];
-  visibility: "PUBLIC" | "FRIENDS";
+  visibility: "PUBLIC" | "FRIENDS" | "ONLY_ME";
+  hashtags?: string[];
+  taggedUsers?: Array<{
+    _id: string;
+    name: string;
+    avatar?: string;
+    email?: string;
+    username?: string;
+  }>;
+  sharedFrom?: string | Post;
+  shareCount?: number;
   likeCount: number;
   commentCount: number;
   reactionCounts?: Partial<Record<ReactionType, number>>;
@@ -966,7 +1059,8 @@ export const getFeed = async (cursor?: string) => {
 export const createPostApi = async (payload: {
   content: string;
   media?: PostMedia[];
-  visibility?: "PUBLIC" | "FRIENDS";
+  visibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME";
+  taggedUsers?: string[];
 }) => {
   const res = await api.post<Post>("/social/posts", payload);
   return res.data;
@@ -981,6 +1075,18 @@ export const getPostComments = async (postId: string, cursor?: string) => {
   const params: any = {};
   if (cursor) params.cursor = cursor;
   const res = await api.get<CommentsResponse>(`/social/posts/${postId}/comments`, { params });
+  return res.data;
+};
+
+export const getPostsByHashtagApi = async (tag: string, cursor?: string) => {
+  const params: any = {};
+  if (cursor) params.cursor = cursor;
+  const res = await api.get<FeedResponse>(`/social/hashtags/${encodeURIComponent(tag)}/posts`, { params });
+  return res.data;
+};
+
+export const sharePostApi = async (postId: string, payload: { content?: string; visibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME" }) => {
+  const res = await api.post<Post>(`/social/posts/${postId}/share`, payload);
   return res.data;
 };
 

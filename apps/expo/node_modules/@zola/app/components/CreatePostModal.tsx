@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { uploadMediaApi } from "../api";
+import { uploadMediaApi, getFriends, getUsersByIds, UserProfile } from "../api";
 import "../styles/feed.css";
 
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (content: string, media: any[], visibility?: "PUBLIC" | "FRIENDS") => Promise<void>;
+  onSubmit: (content: string, media: any[], visibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME", taggedUsers?: string[]) => Promise<void>;
   currentUser: {
     _id: string;
     name: string;
@@ -23,9 +23,16 @@ export const CreatePostModal = ({
   const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [visibility, setVisibility] = useState<"PUBLIC" | "FRIENDS">("PUBLIC");
+  const [visibility, setVisibility] = useState<"PUBLIC" | "FRIENDS" | "ONLY_ME">("PUBLIC");
+  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
+  const [taggedUsers, setTaggedUsers] = useState<UserProfile[]>([]);
+  const [friends, setFriends] = useState<UserProfile[]>([]);
+  const [showTagMenu, setShowTagMenu] = useState(false);
+  const [tagSearchQuery, setTagSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const visibilityMenuRef = useRef<HTMLDivElement>(null);
+  const tagMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && textareaRef.current) {
@@ -40,11 +47,74 @@ export const CreatePostModal = ({
       setSelectedMedia([]);
       mediaPreviews.forEach((url) => URL.revokeObjectURL(url));
       setMediaPreviews([]);
+      setShowVisibilityMenu(false);
+      setTaggedUsers([]);
+      setShowTagMenu(false);
+      setTagSearchQuery("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    } else {
+      // Load friends when modal opens
+      const loadFriends = async () => {
+        try {
+          const friendsData = await getFriends();
+          if (friendsData.friendIds && friendsData.friendIds.length > 0) {
+            const usersData = await getUsersByIds(friendsData.friendIds);
+            setFriends(usersData.users || []);
+          }
+        } catch (error) {
+          console.error("Failed to load friends:", error);
+        }
+      };
+      loadFriends();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!showVisibilityMenu) return;
+    const handleClick = (event: MouseEvent) => {
+      if (
+        visibilityMenuRef.current &&
+        !visibilityMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowVisibilityMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showVisibilityMenu]);
+
+  useEffect(() => {
+    if (!showTagMenu) return;
+    const handleClick = (event: MouseEvent) => {
+      if (
+        tagMenuRef.current &&
+        !tagMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowTagMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showTagMenu]);
+
+  const filteredFriends = friends.filter((friend) =>
+    (friend.name || "").toLowerCase().includes(tagSearchQuery.toLowerCase()) ||
+    friend.username?.toLowerCase().includes(tagSearchQuery.toLowerCase())
+  ).filter((friend) => !taggedUsers.some((tagged) => tagged._id === friend._id));
+
+  const handleTagFriend = (friend: UserProfile) => {
+    if (!taggedUsers.some((tagged) => tagged._id === friend._id)) {
+      setTaggedUsers([...taggedUsers, friend]);
+    }
+    setTagSearchQuery("");
+    setShowTagMenu(false);
+  };
+
+  const handleRemoveTagged = (userId: string) => {
+    setTaggedUsers(taggedUsers.filter((user) => user._id !== userId));
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -104,7 +174,7 @@ export const CreatePostModal = ({
         }
       }
 
-      await onSubmit(content, uploadedMedia, visibility);
+      await onSubmit(content, uploadedMedia, visibility, taggedUsers.map((u) => u._id));
       onClose();
     } catch (error) {
       console.error("Failed to create post:", error);
@@ -141,23 +211,76 @@ export const CreatePostModal = ({
                 </div>
                 <div className="create-post-modal-user-info">
                   <div className="create-post-modal-user-name">{currentUser.name}</div>
-                  <button
-                    className="create-post-modal-privacy"
-                    onClick={() =>
-                      setVisibility(visibility === "PUBLIC" ? "FRIENDS" : "PUBLIC")
-                    }
-                  >
-                    {visibility === "PUBLIC" ? (
-                      <>
-                        <span>🌐</span> Công khai
-                      </>
-                    ) : (
-                      <>
-                        <span>👥</span> Bạn bè
-                      </>
+                  <div className="create-post-modal-privacy-wrapper" ref={visibilityMenuRef}>
+                    <button
+                      className="create-post-modal-privacy"
+                      onClick={() => setShowVisibilityMenu(!showVisibilityMenu)}
+                    >
+                      {visibility === "PUBLIC" ? (
+                        <>
+                          <span>🌐</span> Công khai
+                        </>
+                      ) : visibility === "FRIENDS" ? (
+                        <>
+                          <span>👥</span> Bạn bè
+                        </>
+                      ) : (
+                        <>
+                          <span>🔒</span> Chỉ mình tôi
+                        </>
+                      )}
+                      <span>▼</span>
+                    </button>
+                    {showVisibilityMenu && (
+                      <div className="create-post-modal-privacy-menu">
+                        <button
+                          onClick={() => {
+                            setVisibility("PUBLIC");
+                            setShowVisibilityMenu(false);
+                          }}
+                          className={visibility === "PUBLIC" ? "active" : ""}
+                        >
+                          <span>🌐</span>
+                          <div>
+                            <div>Công khai</div>
+                            <div className="create-post-modal-privacy-menu-desc">
+                              Mọi người đều có thể xem
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setVisibility("FRIENDS");
+                            setShowVisibilityMenu(false);
+                          }}
+                          className={visibility === "FRIENDS" ? "active" : ""}
+                        >
+                          <span>👥</span>
+                          <div>
+                            <div>Bạn bè</div>
+                            <div className="create-post-modal-privacy-menu-desc">
+                              Chỉ bạn bè có thể xem
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setVisibility("ONLY_ME");
+                            setShowVisibilityMenu(false);
+                          }}
+                          className={visibility === "ONLY_ME" ? "active" : ""}
+                        >
+                          <span>🔒</span>
+                          <div>
+                            <div>Chỉ mình tôi</div>
+                            <div className="create-post-modal-privacy-menu-desc">
+                              Chỉ bạn có thể xem
+                            </div>
+                          </div>
+                        </button>
+                      </div>
                     )}
-                    <span>▼</span>
-                  </button>
+                  </div>
                 </div>
               </>
             ) : (
@@ -205,15 +328,77 @@ export const CreatePostModal = ({
                 <span className="create-post-modal-action-icon">📷</span>
                 <span>Ảnh/Video</span>
               </button>
-              <button
-                className="create-post-modal-action-btn"
-                type="button"
-                title="Gắn thẻ bạn bè"
-                disabled
-              >
-                <span className="create-post-modal-action-icon">👤</span>
-                <span>Gắn thẻ bạn bè</span>
-              </button>
+              <div className="create-post-modal-action-wrapper" ref={tagMenuRef}>
+                <button
+                  className="create-post-modal-action-btn"
+                  type="button"
+                  title="Gắn thẻ bạn bè"
+                  onClick={() => setShowTagMenu(!showTagMenu)}
+                >
+                  <span className="create-post-modal-action-icon">👤</span>
+                  <span>Gắn thẻ bạn bè</span>
+                </button>
+                {showTagMenu && (
+                  <div className="create-post-modal-tag-menu">
+                    <input
+                      type="text"
+                      placeholder="Tìm bạn bè..."
+                      value={tagSearchQuery}
+                      onChange={(e) => setTagSearchQuery(e.target.value)}
+                      className="create-post-modal-tag-search"
+                      autoFocus
+                    />
+                    <div className="create-post-modal-tag-list">
+                      {filteredFriends.length === 0 ? (
+                        <div className="create-post-modal-tag-empty">
+                          {tagSearchQuery ? "Không tìm thấy bạn bè" : "Không có bạn bè nào"}
+                        </div>
+                      ) : (
+                        filteredFriends.slice(0, 10).map((friend) => (
+                          <button
+                            key={friend._id}
+                            type="button"
+                            className="create-post-modal-tag-item"
+                            onClick={() => handleTagFriend(friend)}
+                          >
+                            <div className="create-post-modal-tag-avatar">
+                              {friend.avatar ? (
+                                <img src={friend.avatar} alt={friend.name} />
+                              ) : (
+                                <div className="create-post-modal-tag-avatar-initials">
+                                  {friend.name?.charAt(0)?.toUpperCase() || "U"}
+                                </div>
+                              )}
+                            </div>
+                            <div className="create-post-modal-tag-info">
+                              <div className="create-post-modal-tag-name">{friend.name}</div>
+                              {friend.username && (
+                                <div className="create-post-modal-tag-username">@{friend.username}</div>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {taggedUsers.length > 0 && (
+                <div className="create-post-modal-tagged-list">
+                  {taggedUsers.map((user) => (
+                    <div key={user._id} className="create-post-modal-tagged-item">
+                      <span>@{user.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTagged(user._id)}
+                        className="create-post-modal-tagged-remove"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <button
                 className="create-post-modal-action-btn"
                 type="button"

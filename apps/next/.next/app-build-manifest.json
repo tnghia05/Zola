@@ -17,6 +17,12 @@
       "static/css/app/feed/page.css",
       "static/chunks/app/feed/page.js"
     ],
+    "/profile/[userId]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/profile/[userId]/page.css",
+      "static/chunks/app/profile/[userId]/page.js"
+    ],
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -28,35 +34,6 @@
       "static/chunks/main-app.js",
       "static/css/app/conversations/page.css",
       "static/chunks/app/conversations/page.js"
-    ],
-    "/call/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/call/page.css",
-      "static/chunks/app/call/page.js"
-    ],
-    "/friends/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/friends/page.css",
-      "static/chunks/app/friends/page.js"
-    ],
-    "/profile/[userId]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/profile/[userId]/page.css",
-      "static/chunks/app/profile/[userId]/page.js"
-    ],
-    "/search/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/search/page.css",
-      "static/chunks/app/search/page.js"
-    ],
-    "/not-found": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/not-found.js"
     ]
   }
 }

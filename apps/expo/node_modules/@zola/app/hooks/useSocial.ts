@@ -115,8 +115,8 @@ export const useFeed = () => {
   }, []);
 
   const createPost = useCallback(
-    async (content: string, media: any[] = [], visibility: "PUBLIC" | "FRIENDS" = "PUBLIC") => {
-      const post = await createPostApi({ content, media, visibility });
+    async (content: string, media: any[] = [], visibility: "PUBLIC" | "FRIENDS" | "ONLY_ME" = "PUBLIC", taggedUsers?: string[]) => {
+      const post = await createPostApi({ content, media, visibility, taggedUsers });
       setItems((prev) => [post, ...prev]);
     },
     []
