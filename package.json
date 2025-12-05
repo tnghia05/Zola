@@ -1,0 +1,23 @@
+{
+  "name": "zola",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Turborepo monorepo Zola (Expo, Next.js, Electron)",
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:expo": "pnpm --filter zola-expo start",
+    "dev:web": "pnpm --filter zola-web dev",
+    "dev:electron": "pnpm --filter zola-electron dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.1.1",
+    "turbo": "latest"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "livekit-client": "^2.16.0"
+  }
+}

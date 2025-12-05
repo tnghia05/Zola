@@ -1,0 +1,465 @@
+.group-info-panel {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.direct-chat-panel {
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.group-info-section {
+  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.25), transparent),
+    rgba(15, 23, 42, 0.96);
+  border-radius: 18px;
+  padding: 16px 18px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.7);
+}
+
+.group-info-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(248, 250, 252, 0.6);
+  margin-bottom: 10px;
+}
+
+.group-info-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.direct-chat-header {
+  align-items: flex-start;
+  padding-bottom: 8px;
+}
+
+.group-info-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.group-info-avatar.large {
+  width: 72px;
+  height: 72px;
+  font-size: 32px;
+}
+
+.group-info-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.group-info-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.group-info-subtitle {
+  font-size: 13px;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.direct-chat-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.direct-chat-encryption-pill {
+  margin-top: 10px;
+  align-self: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  font-size: 12px;
+  color: rgba(248, 250, 252, 0.9);
+}
+
+.direct-chat-action-row {
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-around;
+  gap: 12px;
+}
+
+.direct-chat-circle-btn {
+  background: transparent;
+  border: none;
+  color: #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.direct-chat-circle-btn .circle-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(30, 64, 175, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.direct-chat-circle-btn .circle-label {
+  white-space: nowrap;
+  color: rgba(209, 213, 219, 0.9);
+}
+
+.group-info-divider {
+  height: 1px;
+  width: 100%;
+  margin: 8px 0 10px;
+  background: radial-gradient(circle, rgba(148, 163, 184, 0.45), transparent);
+}
+
+.group-info-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-info-item {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #e5e7eb;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.group-info-item:hover {
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.group-info-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(30, 64, 175, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.group-info-item > span:last-child {
+  flex: 1;
+}
+
+/* Media overlay (File phương tiện & File) */
+.media-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 360px;
+  height: 100%;
+  background: transparent;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.media-overlay-inner {
+  width: 100%;
+  height: 100%;
+  background: #020617;
+  border-radius: 18px;
+  border-left: 1px solid rgba(148, 163, 184, 0.3);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px;
+  pointer-events: auto;
+  animation: media-slide-in 0.22s ease-out;
+}
+
+.media-overlay-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.media-back-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.media-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.media-subtitle {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.media-tabs {
+  margin-top: 16px;
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+}
+
+.media-tab {
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  color: rgba(148, 163, 184, 0.9);
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.media-tab.active {
+  color: #e5e7eb;
+  border-bottom-color: #3b82f6;
+}
+
+.media-content {
+  flex: 1;
+  padding-top: 16px;
+  overflow: auto;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.media-grid-item {
+  position: relative;
+  width: 100%;
+  padding-top: 100%; /* 1:1 square */
+  border-radius: 10px;
+  overflow: hidden;
+  background: #020617;
+}
+
+.media-grid-item img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.media-placeholder {
+  color: rgba(156, 163, 175, 0.95);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@keyframes media-slide-in {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.group-info-action {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.group-info-action.danger {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #f87171;
+}
+
+.group-info-row {
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.group-info-row.toggle-row {
+  margin-top: 4px;
+  padding: 8px 4px;
+  border-radius: 8px;
+}
+
+.group-member-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.group-member-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.member-info {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.badge-admin {
+  display: inline-block;
+  margin-top: 2px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.member-email {
+  font-size: 12px;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.member-actions button {
+  flex: 1 1 120px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.group-info-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.invite-link-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.invite-link-text {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(248, 250, 252, 0.85);
+  overflow-x: auto;
+}
+
+.invite-link-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.link-button {
+  text-decoration: none;
+  text-align: center;
+}
+
+.invite-code-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  color: rgba(248, 250, 252, 0.8);
+}
+
+.invite-link-hint {
+  font-size: 12px;
+  color: rgba(248, 250, 252, 0.65);
+}
+

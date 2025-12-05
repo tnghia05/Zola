@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Zola",
+    "slug": "zola",
+    "scheme": "zola",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "jsEngine": "hermes"
+  }
+}
+

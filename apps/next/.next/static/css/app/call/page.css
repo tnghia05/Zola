@@ -1,0 +1,431 @@
+/*!*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ../../node_modules/.pnpm/next@14.0.4_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[2]!../../node_modules/.pnpm/next@14.0.4_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[3]!../../packages/app/styles/group-call-grid.css ***!
+  \*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+.group-call-grid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-gap: 8px;
+  gap: 8px;
+  padding: 8px;
+  background: #000;
+}
+
+/* 1 participant */
+.group-call-grid.grid-1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 2 participants */
+.group-call-grid.grid-2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 3 participants */
+.group-call-grid.grid-3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.group-call-grid.grid-3 .participant-video-tile:first-child {
+  grid-column: 1 / -1;
+}
+
+/* 4 participants */
+.group-call-grid.grid-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* 5 participants */
+.group-call-grid.grid-5 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.group-call-grid.grid-5 .participant-video-tile:nth-child(-n + 2) {
+  grid-column: span 1;
+}
+
+.group-call-grid.grid-5 .participant-video-tile:first-child {
+  grid-column: 1 / 3;
+}
+
+/* 6 participants */
+.group-call-grid.grid-6 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* 7-9 participants */
+.group-call-grid.grid-7,
+.group-call-grid.grid-8,
+.group-call-grid.grid-9 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+.participant-video-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2c3e50, #4b6cb7);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.participant-video-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.participant-info-overlay {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.participant-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.participant-name {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.participant-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.9);
+}
+
+
+
+
+/*!********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ../../node_modules/.pnpm/next@14.0.4_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[2]!../../node_modules/.pnpm/next@14.0.4_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[3]!../../packages/app/styles/call.css ***!
+  \********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/* Call Screen - Facebook Messenger Style */
+.call-screen {
+  width: 100%;
+  height: 100vh;
+  background-color: #000;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main video area - remote video or avatar */
+.call-main-video {
+  flex: 1 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000;
+}
+
+.call-video-remote {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Avatar container (when no video) */
+.call-avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 1;
+}
+
+.call-avatar {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-avatar-placeholder {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  font-weight: 600;
+  color: #fff;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.call-status {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+/* Self-view video (small, bottom right) */
+.call-self-view {
+  position: absolute;
+  bottom: 100px;
+  right: 20px;
+  width: 220px;
+  height: 140px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.8), rgba(236, 72, 153, 0.85));
+}
+
+.call-video-local {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Call duration (bottom left) */
+.call-duration {
+  position: absolute;
+  left: 24px;
+  bottom: 105px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #e5e7eb;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+.call-duration::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.35);
+}
+
+/* Error banner */
+.call-error-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.6);
+  color: #fecaca;
+  font-size: 14px;
+  -webkit-backdrop-filter: blur(16px);
+          backdrop-filter: blur(16px);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65);
+}
+
+/* Call controls (bottom center) */
+.call-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.call-incoming-controls {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 6px;
+}
+
+.call-active-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.9);
+}
+
+.call-control-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #e5e7eb;
+  transition: all 0.18s ease-out;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+}
+
+.call-control-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.call-control-primary {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+.call-control-secondary {
+  background: linear-gradient(135deg, #1f2937, #111827);
+}
+
+.call-control-accept {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.call-control-reject {
+  background: linear-gradient(135deg, #f97373, #ef4444);
+}
+
+.call-control-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.75);
+  opacity: 0.96;
+}
+
+.call-control-btn:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+  opacity: 0.9;
+}
+
+.call-control-active {
+  box-shadow: 0 0 0 2px rgba(94, 234, 212, 0.6), 0 16px 35px rgba(0, 0, 0, 0.9);
+}
+
+/* Filter panel */
+.call-filter-panel {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.95);
+  -webkit-backdrop-filter: blur(18px);
+          backdrop-filter: blur(18px);
+}
+
+.filter-option {
+  min-width: 70px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.16s ease-out;
+}
+
+.filter-option-emoji {
+  font-size: 18px;
+}
+
+.filter-option-label {
+  opacity: 0.8;
+}
+
+.filter-option-active {
+  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.92), rgba(37, 99, 235, 0.9));
+  border-color: rgba(191, 219, 254, 0.9);
+  box-shadow: 0 14px 35px rgba(37, 99, 235, 0.9);
+}
+
+.filter-option-active .filter-option-label {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.call-loading {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  color: #e5e7eb;
+  background: radial-gradient(circle at top, #020617, #020617 40%, #000 100%);
+}
+
+.call-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 3px solid rgba(148, 163, 184, 0.35);
+  border-top-color: #60a5fa;
+  animation: call-loading-spin 0.85s linear infinite;
+}
+
+@keyframes call-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+

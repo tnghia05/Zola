@@ -1,0 +1,17 @@
+{
+  "name": "@zola/app",
+  "version": "0.0.0",
+  "private": false,
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-native": ">=0.73.0",
+    "react-native-web": "^0.19.11",
+    "solito": "^5.0.0"
+  }
+}
+

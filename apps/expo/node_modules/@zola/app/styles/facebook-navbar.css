@@ -1,0 +1,241 @@
+/**
+ * FACEBOOK DESKTOP HEADER - STRICT CLONE
+ * (copied from Day2-desktop/src/styles/facebook-navbar.css)
+ */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+
+.fb-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #242526;
+  border-bottom: 1px solid #393a3b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.fb-navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 320px;
+}
+
+.fb-logo {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fb-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+}
+
+.fb-logo:active {
+  transform: scale(0.95);
+}
+
+.fb-logo-text {
+  font-size: 24px;
+  font-weight: 800;
+  color: white;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  user-select: none;
+}
+
+.fb-search-wrapper {
+  position: relative;
+  display: none;
+  align-items: center;
+  background: #3A3B3C;
+  height: 40px;
+  border-radius: 50px;
+  padding: 0 12px;
+  width: 240px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fb-search-wrapper:focus-within {
+  background: #4E4F50;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+}
+
+@media (min-width: 1280px) {
+  .fb-search-wrapper {
+    display: flex;
+  }
+}
+
+.fb-search-icon {
+  color: #B0B3B8;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.fb-search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #E4E6EB;
+  font-size: 15px;
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.fb-search-input::placeholder {
+  color: #B0B3B8;
+}
+
+.fb-navbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  flex: 1;
+  max-width: 590px;
+}
+
+.fb-nav-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  width: 112px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #B0B3B8;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0;
+}
+
+.fb-nav-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fb-nav-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #1877F2;
+}
+
+.fb-nav-tab--active {
+  color: #1877F2;
+}
+
+.fb-nav-tab--active::after {
+  background: #1877F2;
+}
+
+.fb-nav-tab svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+@media (max-width: 1024px) {
+  .fb-nav-tab:nth-child(4),
+  .fb-nav-tab:nth-child(5) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .fb-nav-tab {
+    width: 80px;
+  }
+
+  .fb-nav-tab:nth-child(3) {
+    display: none;
+  }
+}
+
+.fb-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+  max-width: 320px;
+}
+
+.fb-icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3A3B3C;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #E4E6EB;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.fb-icon-button:hover {
+  background: #4E4F50;
+  transform: scale(1.05);
+}
+
+.fb-icon-button:active {
+  transform: scale(0.95);
+  background: #5A5B5C;
+}
+
+.fb-notifications-wrapper {
+  position: relative;
+}
+
+.fb-profile-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.fb-profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fb-profile-avatar-initials {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+}
+
+

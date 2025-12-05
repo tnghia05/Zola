@@ -1,0 +1,406 @@
+/* Call Screen - Facebook Messenger Style */
+.call-screen {
+  width: 100%;
+  height: 100vh;
+  background-color: #000;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main video area - remote video or avatar */
+.call-main-video {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000;
+}
+
+.call-video-remote {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Avatar container (when no video) */
+.call-avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 1;
+}
+
+.call-avatar {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-avatar-placeholder {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  font-weight: 600;
+  color: #fff;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.call-status {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+/* Self-view video (small, bottom right) */
+.call-self-view {
+  position: absolute;
+  bottom: 100px;
+  right: 20px;
+  width: 160px;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #1a1a1a;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.call-self-view:hover {
+  transform: scale(1.05);
+}
+
+.call-video-local {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Call duration (bottom left) */
+.call-duration {
+  position: absolute;
+  bottom: 100px;
+  left: 20px;
+  color: #10b981;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  z-index: 10;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Error banner (top) */
+.call-error-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 20;
+  max-width: 80%;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Call controls (bottom center) */
+.call-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  z-index: 10;
+}
+
+.call-incoming-controls,
+.call-start-controls,
+.call-active-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+/* Control buttons */
+.call-control-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.call-control-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+.call-control-btn:active {
+  transform: scale(0.95);
+}
+
+/* Secondary buttons (message, add participant) */
+.call-control-secondary {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.call-control-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Accept button */
+.call-control-accept {
+  background-color: #10b981;
+  width: 56px;
+  height: 56px;
+}
+
+.call-control-accept:hover {
+  background-color: #059669;
+}
+
+/* Reject/End call button */
+.call-control-reject,
+.call-control-end {
+  background-color: #ef4444;
+  width: 56px;
+  height: 56px;
+}
+
+.call-control-reject:hover,
+.call-control-end:hover {
+  background-color: #dc2626;
+}
+
+/* Start call button */
+.call-control-start {
+  background-color: #10b981;
+  width: 64px;
+  height: 64px;
+}
+
+.call-control-start:hover {
+  background-color: #059669;
+  transform: scale(1.1);
+}
+
+/* Muted state */
+.call-control-muted {
+  background-color: rgba(239, 68, 68, 0.3);
+}
+
+.call-control-muted:hover {
+  background-color: rgba(239, 68, 68, 0.5);
+}
+
+.call-control-btn.call-control-active {
+  background-color: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.6);
+}
+
+.call-control-btn.call-control-active:hover {
+  background-color: rgba(16, 185, 129, 0.4);
+}
+
+/* Loading state */
+.call-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+}
+
+.call-screen-share-indicator {
+  position: absolute;
+  top: 90px;
+  right: 20px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #e5f4ff;
+  padding: 10px 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  font-size: 14px;
+  z-index: 15;
+}
+
+.call-screen-share-indicator button {
+  background: transparent;
+  border: 1px solid rgba(229, 244, 255, 0.4);
+  color: inherit;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.call-screen-share-indicator button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.call-filter-panel {
+  position: absolute;
+  bottom: 130px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(540px, 92%);
+  background: rgba(8, 10, 20, 0.92);
+  border-radius: 24px;
+  padding: 18px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+  z-index: 18;
+}
+
+.call-filter-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.call-filter-panel__header button {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.call-filter-panel__list {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filter-option {
+  min-width: 88px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border 0.15s ease, background 0.15s ease;
+}
+
+.filter-option.active {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.18);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+}
+
+.filter-option.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.filter-option__emoji {
+  font-size: 20px;
+}
+
+.filter-option__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.call-filter-panel__notice {
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .call-self-view {
+    width: 120px;
+    height: 90px;
+    bottom: 80px;
+    right: 16px;
+  }
+
+  .call-duration {
+    bottom: 80px;
+    left: 16px;
+    font-size: 16px;
+  }
+
+  .call-controls {
+    padding: 16px;
+  }
+
+  .call-control-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .call-control-accept,
+  .call-control-reject,
+  .call-control-end {
+    width: 52px;
+    height: 52px;
+  }
+
+  .call-avatar,
+  .call-avatar-placeholder {
+    width: 150px;
+    height: 150px;
+  }
+
+  .call-name {
+    font-size: 20px;
+  }
+}

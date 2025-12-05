@@ -1,0 +1,14 @@
+{
+  "name": "zola-electron",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter zola-electron-main dev\" \"pnpm --filter zola-electron-renderer dev\"",
+    "build": "pnpm --filter zola-electron-main build",
+    "lint": "echo \"Electron lint TODO\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
