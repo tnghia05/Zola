@@ -684,6 +684,13 @@ export const uploadAvatarDirect = async (file: { uri: string; name: string; type
 
 // ===== User helpers used by chat side panel =====
 export type UserProfile = {
+  role?: "user" | "admin" | "manager";
+  isBanned?: boolean;
+  bannedAt?: string;
+  bannedReason?: string;
+  isVerified?: boolean;
+  verifiedAt?: string;
+  verifiedBy?: string;
 	_id: string;
 	name?: string;
 	email?: string;
@@ -1151,6 +1158,11 @@ export const sendFriendRequestApi = async (targetUserId: string) => {
   return res.data;
 };
 
+export const respondFriendRequestApi = async (friendshipId: string, action: "accept" | "decline") => {
+  const res = await api.post(`/social/friends/${friendshipId}/respond`, { action });
+  return res.data;
+};
+
 export const getNotificationsApi = async (cursor?: string, limit: number = 20) => {
   const params: any = { limit };
   if (cursor) params.cursor = cursor;
@@ -1389,5 +1401,241 @@ export const syncReelsFromPostsApi = async () => {
   const res = await api.post<{ message: string; createdCount: number; totalPostsWithVideo: number }>(
     "/reels/sync"
   );
+  return res.data;
+};
+
+// ==========================================
+// ADMIN APIs
+// ==========================================
+
+// Users Management
+export const getAdminUsersApi = async (params?: {
+  page?: number;
+  limit?: number;
+  role?: string;
+  status?: string;
+  search?: string;
+  verified?: string;
+}) => {
+  const res = await api.get<{
+    items: UserProfile[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>("/admin/users", { params });
+  return res.data;
+};
+
+export const getAdminUserStatsApi = async () => {
+  const res = await api.get<{
+    totalUsers: number;
+    activeUsers: number;
+    bannedUsers: number;
+    verifiedUsers: number;
+    newUsersToday: number;
+    newUsersThisWeek: number;
+  }>("/admin/users/stats");
+  return res.data;
+};
+
+export const getAdminUserDetailsApi = async (userId: string) => {
+  const res = await api.get<UserProfile & { stats: { postsCount: number; commentsCount: number; friendsCount: number; reportsCount: number } }>(
+    `/admin/users/${userId}`
+  );
+  return res.data;
+};
+
+export const banUserApi = async (userId: string, reason?: string) => {
+  const res = await api.patch<{ message: string; user: UserProfile }>(`/admin/users/${userId}/ban`, { reason });
+  return res.data;
+};
+
+export const unbanUserApi = async (userId: string) => {
+  const res = await api.patch<{ message: string; user: UserProfile }>(`/admin/users/${userId}/unban`);
+  return res.data;
+};
+
+export const updateUserRoleApi = async (userId: string, role: "user" | "admin" | "manager") => {
+  const res = await api.patch<{ message: string; user: UserProfile }>(`/admin/users/${userId}/role`, { role });
+  return res.data;
+};
+
+export const verifyUserApi = async (userId: string) => {
+  const res = await api.patch<{ message: string; user: UserProfile }>(`/admin/users/${userId}/verify`);
+  return res.data;
+};
+
+export const unverifyUserApi = async (userId: string) => {
+  const res = await api.patch<{ message: string; user: UserProfile }>(`/admin/users/${userId}/unverify`);
+  return res.data;
+};
+
+// Posts Management
+export const getAdminPostsApi = async (params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  authorId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}) => {
+  const res = await api.get<{
+    items: Post[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>("/admin/posts", { params });
+  return res.data;
+};
+
+export const getAdminPostStatsApi = async () => {
+  const res = await api.get<{
+    totalPosts: number;
+    activePosts: number;
+    deletedPosts: number;
+    postsToday: number;
+    postsThisWeek: number;
+  }>("/admin/posts/stats");
+  return res.data;
+};
+
+export const deletePostApi = async (postId: string) => {
+  const res = await api.delete<{ message: string }>(`/admin/posts/${postId}`);
+  return res.data;
+};
+
+export const hidePostApi = async (postId: string) => {
+  const res = await api.patch<{ message: string; post: Post }>(`/admin/posts/${postId}/hide`);
+  return res.data;
+};
+
+export const restorePostApi = async (postId: string) => {
+  const res = await api.patch<{ message: string; post: Post }>(`/admin/posts/${postId}/restore`);
+  return res.data;
+};
+
+// Reports Management
+export interface PostReport {
+  _id: string;
+  postId: Post;
+  reporterId: UserProfile;
+  reason: string;
+  details?: string;
+  status: "PENDING" | "REVIEWING" | "RESOLVED";
+  handledBy?: UserProfile;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getAdminReportsApi = async (params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}) => {
+  const res = await api.get<{
+    items: PostReport[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>("/admin/reports", { params });
+  return res.data;
+};
+
+export const getAdminReportDetailsApi = async (reportId: string) => {
+  const res = await api.get<PostReport>(`/admin/reports/${reportId}`);
+  return res.data;
+};
+
+export const handleReportApi = async (reportId: string, action: "resolve" | "dismiss", notes?: string) => {
+  const res = await api.patch<{ message: string; report: PostReport }>(
+    `/admin/reports/${reportId}/handle`,
+    { action, notes }
+  );
+  return res.data;
+};
+
+export const bulkHandleReportsApi = async (reportIds: string[], action: "resolve" | "dismiss") => {
+  const res = await api.post<{ message: string; modifiedCount: number }>("/admin/reports/bulk-handle", {
+    reportIds,
+    action,
+  });
+  return res.data;
+};
+
+// Analytics
+export const getAdminDashboardStatsApi = async () => {
+  const res = await api.get<{
+    users: { total: number; active: number };
+    posts: { total: number; active: number };
+    reports: { total: number; pending: number };
+    engagement: { postsCreated: number; reactionsGiven: number; commentsCreated: number };
+  }>("/admin/dashboard/stats");
+  return res.data;
+};
+
+export const getAdminAnalyticsChartApi = async (timeRange?: string, metric?: string) => {
+  const res = await api.get<{ data: Array<{ _id: string; count: number }> }>("/admin/analytics/chart", {
+    params: { timeRange, metric },
+  });
+  return res.data;
+};
+
+export const getUserActivityStatsApi = async (userId: string, timeRange?: string) => {
+  const res = await api.get<{ posts: number; comments: number; reactions: number }>(
+    `/admin/analytics/users/${userId}`,
+    { params: { timeRange } }
+  );
+  return res.data;
+};
+
+export const getContentStatsApi = async (timeRange?: string) => {
+  const res = await api.get<{ posts: number; reels: number; stories: number }>("/admin/analytics/content", {
+    params: { timeRange },
+  });
+  return res.data;
+};
+
+// Content Moderation
+export const moderatePostApi = async (postId: string, action: "approve" | "reject" | "warn") => {
+  const res = await api.patch<{ message: string }>(`/admin/moderation/posts/${postId}`, { action });
+  return res.data;
+};
+
+export const bulkModeratePostsApi = async (postIds: string[], action: "approve" | "reject" | "restore") => {
+  const res = await api.post<{ message: string }>("/admin/moderation/posts/bulk", { postIds, action });
+  return res.data;
+};
+
+export const getModerationQueueApi = async () => {
+  const res = await api.get<{ items: Post[]; total: number }>("/admin/moderation/queue");
+  return res.data;
+};
+
+// Settings
+export interface SystemSettings {
+  maintenanceMode: boolean;
+  registrationEnabled: boolean;
+  maxPostLength: number;
+  maxMediaPerPost: number;
+  allowedMediaTypes: string[];
+}
+
+export const getSystemSettingsApi = async () => {
+  const res = await api.get<SystemSettings>("/admin/settings");
+  return res.data;
+};
+
+export const updateSystemSettingsApi = async (settings: Partial<SystemSettings>) => {
+  const res = await api.patch<{ message: string; settings: SystemSettings }>("/admin/settings", settings);
+  return res.data;
+};
+
+export const getSystemLogsApi = async (params?: { page?: number; limit?: number }) => {
+  const res = await api.get<{ items: any[]; page: number; limit: number }>("/admin/logs", { params });
   return res.data;
 };

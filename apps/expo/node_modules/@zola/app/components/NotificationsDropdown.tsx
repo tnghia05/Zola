@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { getNotificationsApi, markNotificationsReadApi } from "../api";
+import { getNotificationsApi, markNotificationsReadApi, respondFriendRequestApi } from "../api";
+import { BellIcon } from "./Icons";
 import "../styles/feed.css";
 
 export const NotificationsDropdown = () => {
@@ -7,6 +8,7 @@ export const NotificationsDropdown = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,6 +86,38 @@ export const NotificationsDropdown = () => {
     return date.toLocaleDateString("vi-VN");
   };
 
+  const handleRespondFriendRequest = async (notif: any, action: "accept" | "decline") => {
+    if (!notif.entityId) {
+      console.error("No friendshipId in notification");
+      return;
+    }
+
+    const friendshipId = notif.entityId;
+    const processingKey = `${friendshipId}-${action}`;
+
+    try {
+      setProcessingIds((prev) => new Set(prev).add(processingKey));
+      
+      await respondFriendRequestApi(friendshipId, action);
+      
+      // Remove notification after successful response
+      setNotifications((prev) => prev.filter((n) => n._id !== notif._id));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      
+      // Reload notifications to get updated state
+      await loadNotifications();
+    } catch (error: any) {
+      console.error("Failed to respond to friend request:", error);
+      alert(error?.response?.data?.error || error?.message || "Không thể xử lý yêu cầu kết bạn");
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(processingKey);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="notifications-wrapper" ref={dropdownRef}>
       <button
@@ -91,7 +125,7 @@ export const NotificationsDropdown = () => {
         onClick={() => setIsOpen(!isOpen)}
         title="Thông báo"
       >
-        🔔
+        <BellIcon size={20} color="currentColor" />
         {unreadCount > 0 && (
           <span className="notifications-badge">{unreadCount}</span>
         )}
@@ -123,35 +157,65 @@ export const NotificationsDropdown = () => {
                 Không có thông báo nào.
               </div>
             )}
-            {notifications.map((notif) => (
-              <div
-                key={notif._id}
-                className={`notification-item ${!notif.isRead ? "notification-item--unread" : ""}`}
-                onClick={() => {
-                  if (!notif.isRead) handleMarkRead([notif._id]);
-                  // TODO: Navigate to post/profile
-                }}
-              >
-                <div className="notification-avatar">
-                  {notif.actor?.avatar ? (
-                    <img src={notif.actor.avatar} alt={notif.actor.name} />
-                  ) : (
-                    <div className="notification-avatar-initials">
-                      {notif.actor?.name?.charAt(0)?.toUpperCase() || "U"}
+            {notifications.map((notif) => {
+              const isFriendRequest = notif.type === "FRIEND_REQUEST";
+              const friendshipId = notif.entityId;
+              const isProcessingAccept = processingIds.has(`${friendshipId}-accept`);
+              const isProcessingDecline = processingIds.has(`${friendshipId}-decline`);
+              const isProcessing = isProcessingAccept || isProcessingDecline;
+
+              return (
+                <div
+                  key={notif._id}
+                  className={`notification-item ${!notif.isRead ? "notification-item--unread" : ""}`}
+                  onClick={(e) => {
+                    // Don't mark as read if clicking on action buttons
+                    if ((e.target as HTMLElement).closest('.notification-actions')) {
+                      return;
+                    }
+                    if (!notif.isRead) handleMarkRead([notif._id]);
+                    // TODO: Navigate to post/profile
+                  }}
+                >
+                  <div className="notification-avatar">
+                    {notif.actor?.avatar ? (
+                      <img src={notif.actor.avatar} alt={notif.actor.name} />
+                    ) : (
+                      <div className="notification-avatar-initials">
+                        {notif.actor?.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="notification-content">
+                    <div className="notification-text">
+                      {formatNotificationText(notif)}
                     </div>
-                  )}
-                </div>
-                <div className="notification-content">
-                  <div className="notification-text">
-                    {formatNotificationText(notif)}
+                    <div className="notification-time">
+                      {formatTime(notif.createdAt)}
+                    </div>
+                    {isFriendRequest && friendshipId && (
+                      <div className="notification-actions" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="notification-action-btn notification-action-accept"
+                          onClick={() => handleRespondFriendRequest(notif, "accept")}
+                          disabled={isProcessing}
+                        >
+                          {isProcessingAccept ? "Đang xử lý..." : "Kết bạn"}
+                        </button>
+                        <button
+                          className="notification-action-btn notification-action-decline"
+                          onClick={() => handleRespondFriendRequest(notif, "decline")}
+                          disabled={isProcessing}
+                        >
+                          {isProcessingDecline ? "Đang xử lý..." : "Từ chối"}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="notification-time">
-                    {formatTime(notif.createdAt)}
-                  </div>
+                  {!notif.isRead && <div className="notification-dot" />}
                 </div>
-                {!notif.isRead && <div className="notification-dot" />}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

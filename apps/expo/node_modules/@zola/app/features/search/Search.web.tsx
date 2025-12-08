@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, FormEvent, useCallback } from "react";
+import React, { useState, useEffect, FormEvent, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Post, SearchResponse, getCurrentUserId, getUserById, searchSocialApi, getUserPostsApi } from "@zola/app/api";
 import { FacebookNavbarWeb } from "@zola/app/components/FacebookNavbar.web";
+import { SearchIcon, FriendsIcon, CommentIcon } from "@zola/app/components/Icons";
 import "@zola/app/styles/feed.css";
 import "@zola/app/styles/facebook-navbar.css";
 
@@ -12,13 +13,13 @@ type FilterType = "all" | "users" | "posts";
 interface FilterItem {
   id: FilterType;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const FILTERS: FilterItem[] = [
-  { id: "all", label: "Tất cả", icon: "🔍" },
-  { id: "users", label: "Mọi người", icon: "👥" },
-  { id: "posts", label: "Bài viết", icon: "📝" },
+  { id: "all", label: "Tất cả", icon: <SearchIcon size={20} color="currentColor" /> },
+  { id: "users", label: "Mọi người", icon: <FriendsIcon size={20} color="currentColor" /> },
+  { id: "posts", label: "Bài viết", icon: <CommentIcon size={20} color="currentColor" /> },
 ];
 
 const SearchScreen = () => {
@@ -159,7 +160,9 @@ const SearchScreen = () => {
             <div className="search-input-bar">
               <form className="search-form-inline" onSubmit={handleSubmit}>
                 <div className="search-input-wrapper">
-                  <span className="search-input-icon">🔍</span>
+                  <span className="search-input-icon">
+                    <SearchIcon size={18} color="currentColor" />
+                  </span>
                   <input
                     className="search-input-field"
                     placeholder="Tìm kiếm trên Zola..."
@@ -240,7 +243,9 @@ const SearchScreen = () => {
                 {/* No Results */}
                 {filteredUsers.length === 0 && filteredPosts.length === 0 && (
                   <div className="search-no-results">
-                    <div className="search-no-results-icon">🔍</div>
+                    <div className="search-no-results-icon">
+                      <SearchIcon size={48} color="currentColor" />
+                    </div>
                     <h3>Không tìm thấy kết quả</h3>
                     <p>Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc.</p>
                   </div>
@@ -251,7 +256,9 @@ const SearchScreen = () => {
             {/* Initial State */}
             {!isLoading && !results && !error && (
               <div className="search-initial-state">
-                <div className="search-initial-icon">🔍</div>
+                <div className="search-initial-icon">
+                  <SearchIcon size={48} color="currentColor" />
+                </div>
                 <h3>Tìm kiếm trên Zola</h3>
                 <p>Tìm bạn bè, bài viết và nhiều nội dung khác...</p>
               </div>

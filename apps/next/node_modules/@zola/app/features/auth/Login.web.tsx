@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { login, setAuthToken, sendVerificationOTP } from '../../api';
 import './Login.css';
 
 export default function LoginScreen() {
   console.log('🔐 LoginScreen component rendering...');
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,9 +17,9 @@ export default function LoginScreen() {
     const token = localStorage.getItem('auth_token');
     if (token) {
       console.log('🔍 Already logged in, redirecting to home...');
-      window.location.href = '/conversations';
+      router.push('/conversations');
     }
-  }, []);
+  }, [router]);
 
   console.log('🔐 LoginScreen render complete');
 
@@ -49,7 +51,7 @@ export default function LoginScreen() {
       window.dispatchEvent(new Event('auth:login'));
 
       console.log('🔍 Login successful, navigating to Conversations...');
-      window.location.href = '/conversations';
+      router.push('/conversations');
     } catch (e: any) {
       console.error('❌ Login error:', e);
 
@@ -186,9 +188,7 @@ export default function LoginScreen() {
             <span className="auth-footer-text">Chưa có tài khoản?</span>
             <button
               className="auth-link"
-              onClick={() => {
-                window.location.href = '/register';
-              }}
+              onClick={() => router.push('/register')}
             >
               Tạo tài khoản
             </button>

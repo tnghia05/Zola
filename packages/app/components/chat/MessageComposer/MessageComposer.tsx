@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { SendMessagePayload } from '../../../types/chat';
 import { uploadChatFile } from '../../../api';
+import { CameraIcon, MicIcon } from '../../Icons';
 
 interface MessageComposerProps {
   onSend: (payload: SendMessagePayload) => Promise<void> | void;
@@ -151,7 +152,7 @@ export function MessageComposer({
           title="Gửi ảnh/video"
           onClick={() => mediaInputRef.current?.click()}
         >
-          📷
+          <CameraIcon size={20} color="#0966FF" />
         </button>
         <button
           type="button"
@@ -160,7 +161,7 @@ export function MessageComposer({
           title="Gửi âm thanh"
           onClick={() => audioInputRef.current?.click()}
         >
-          🎤
+          <MicIcon size={20} color="#0966FF" />
         </button>
       </div>
       <input

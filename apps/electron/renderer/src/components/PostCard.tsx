@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Post, ReactionType } from "../api";
 import { useComments } from "../hooks/useSocial";
 import { CommentIcon } from "./CommentIcon";
 import { ShareIcon } from "./ShareIcon";
+import { ReactionIcon, LikeIcon, LoveIcon, HahaIcon, WowIcon, SadIcon, AngryIcon } from "./ReactionIcons";
 
 type PostWithSavedMeta = Post & { savedAt?: string };
 
-const REACTIONS: { type: ReactionType; emoji: string; label: string }[] = [
-  { type: "LIKE", emoji: "👍", label: "Thích" },
-  { type: "LOVE", emoji: "❤️", label: "Yêu thích" },
-  { type: "HAHA", emoji: "😆", label: "Haha" },
-  { type: "WOW", emoji: "😮", label: "Wow" },
-  { type: "SAD", emoji: "😢", label: "Buồn" },
-  { type: "ANGRY", emoji: "😡", label: "Phẫn nộ" },
+const REACTIONS: { type: ReactionType; emoji: string; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
+  { type: "LIKE", emoji: "👍", label: "Thích", Icon: LikeIcon },
+  { type: "LOVE", emoji: "❤️", label: "Yêu thích", Icon: LoveIcon },
+  { type: "HAHA", emoji: "😆", label: "Haha", Icon: HahaIcon },
+  { type: "WOW", emoji: "😮", label: "Wow", Icon: WowIcon },
+  { type: "SAD", emoji: "😢", label: "Buồn", Icon: SadIcon },
+  { type: "ANGRY", emoji: "😡", label: "Phẫn nộ", Icon: AngryIcon },
 ];
 
 type Props = {
@@ -239,8 +240,8 @@ export const PostCard = ({
       <div className="feed-post-social">
         <div className="feed-post-reaction-summary">
           {displayedReactions.map((item) => (
-            <span key={item.type} className="feed-post-reaction-icon">
-              {item.emoji}
+            <span key={item.type} className="feed-post-reaction-icon feed-post-reaction-icon--svg">
+              <ReactionIcon type={item.type} size={18} />
             </span>
           ))}
           {totalReactions > 0 && <span className="feed-post-reaction-total">{totalReactions}</span>}
@@ -260,23 +261,37 @@ export const PostCard = ({
             onClick={handleReactionButtonClick}
             disabled={!canReact}
           >
-            <span>
-              {currentReaction
-                ? REACTIONS.find((r) => r.type === currentReaction)?.emoji || "👍"
-                : "👍"}
-            </span>
-            <span>{currentReaction ? "Đã bày tỏ cảm xúc" : "Thích"}</span>
+            {(() => {
+              const currentReactionData = currentReaction 
+                ? REACTIONS.find(r => r.type === currentReaction) 
+                : null;
+              const label = currentReactionData?.label || "Thích";
+              return (
+                <>
+                  <span className="feed-post-reaction-button-icon">
+                    {currentReaction ? (
+                      <ReactionIcon type={currentReaction} size={20} />
+                    ) : (
+                      <LikeIcon size={20} />
+                    )}
+                  </span>
+                  <span>{label}</span>
+                </>
+              );
+            })()}
           </button>
           {pickerVisible && (
             <div
-              className="reaction-picker"
+              className="reaction-picker reaction-picker--svg"
               ref={pickerRef}
               onMouseEnter={showPicker}
               onMouseLeave={hidePicker}
             >
               {REACTIONS.map((item) => (
-                <button key={item.type} onClick={() => handleReactionSelect(item.type)}>
-                  <span className="reaction-emoji">{item.emoji}</span>
+                <button key={item.type} onClick={() => handleReactionSelect(item.type)} className="reaction-picker-btn">
+                  <span className="reaction-emoji reaction-emoji--svg">
+                    <item.Icon size={40} />
+                  </span>
                   <span className="reaction-label">{item.label}</span>
                 </button>
               ))}

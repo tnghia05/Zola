@@ -28,6 +28,7 @@ import { PostCard } from "../../components/PostCard.web";
 import { FloatingChatWindow } from "../../components/FloatingChatWindow";
 import { MinimizedChatIcon } from "../../components/MinimizedChatIcon";
 import { ChatWindowsProvider, useChatWindows } from "../../contexts/ChatWindowsContext";
+import { ReelIcon } from "../../components/Icons";
 import "../../styles/feed.css";
 
 const FeedScreenContent = () => {
@@ -420,7 +421,7 @@ const FeedScreenContent = () => {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#3a3b3c")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
-            <span style={{ fontSize: "20px" }}>🎬</span>
+            <ReelIcon size={20} color="#f02849" />
             <span>Reel</span>
           </button>
         </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ProfileIcon, BellIcon, SearchIcon, PaletteIcon, ThumbsUpIcon, MediaIcon, FolderIcon, FileIcon } from '../Icons';
 import '../../styles/group-info-panel.css';
 import type { Conversation } from '../../api';
 import type { ChatMessage } from '../../types/chat';
@@ -77,7 +78,7 @@ export function DirectChatInfoPanel({
       <div className="group-info-section">
         <div className="group-info-header direct-chat-header">
           <div className="group-info-avatar large">
-            {opponentAvatar ? <img src={opponentAvatar} alt="" /> : '👤'}
+            {opponentAvatar ? <img src={opponentAvatar} alt="" /> : <ProfileIcon size={40} color="#0966FF" />}
           </div>
           <div className="direct-chat-header-text">
             <div className="group-info-title">{title}</div>
@@ -88,15 +89,15 @@ export function DirectChatInfoPanel({
 
         <div className="direct-chat-action-row">
           <button className="direct-chat-circle-btn">
-            <span className="circle-icon">👤</span>
+            <span className="circle-icon"><ProfileIcon size={20} color="#e4e6eb" /></span>
             <span className="circle-label">Trang cá nhân</span>
           </button>
           <button className="direct-chat-circle-btn">
-            <span className="circle-icon">🔔</span>
+            <span className="circle-icon"><BellIcon size={20} color="#e4e6eb" /></span>
             <span className="circle-label">Tắt thông báo</span>
           </button>
           <button className="direct-chat-circle-btn">
-            <span className="circle-icon">🔍</span>
+            <span className="circle-icon"><SearchIcon size={20} color="#e4e6eb" /></span>
             <span className="circle-label">Tìm kiếm</span>
           </button>
         </div>
@@ -109,15 +110,15 @@ export function DirectChatInfoPanel({
         <div className="group-info-section-title">Tuỳ chỉnh đoạn chat</div>
         <div className="group-info-list">
           <button className="group-info-item">
-            <span className="group-info-item-icon">🎨</span>
+            <span className="group-info-item-icon"><PaletteIcon size={20} color="#e4e6eb" /></span>
             <span>Đổi chủ đề</span>
           </button>
           <button className="group-info-item">
-            <span className="group-info-item-icon">👍</span>
+            <span className="group-info-item-icon"><ThumbsUpIcon size={20} color="#e4e6eb" /></span>
             <span>Thay đổi biểu tượng cảm xúc</span>
           </button>
           <button className="group-info-item">
-            <span className="group-info-item-icon">Aa</span>
+            <span className="group-info-item-icon" style={{ fontWeight: 700, fontSize: '14px' }}>Aa</span>
             <span>Chỉnh sửa biệt danh</span>
           </button>
         </div>
@@ -134,7 +135,7 @@ export function DirectChatInfoPanel({
               setIsMediaOpen(true);
             }}
           >
-            <span className="group-info-item-icon">🖼️</span>
+            <span className="group-info-item-icon"><MediaIcon size={20} color="#e4e6eb" /></span>
             <span>File phương tiện</span>
           </button>
           <button
@@ -144,7 +145,7 @@ export function DirectChatInfoPanel({
               setIsMediaOpen(true);
             }}
           >
-            <span className="group-info-item-icon">📁</span>
+            <span className="group-info-item-icon"><FolderIcon size={20} color="#e4e6eb" /></span>
             <span>File</span>
           </button>
         </div>
@@ -223,7 +224,7 @@ export function DirectChatInfoPanel({
                         rel="noreferrer"
                         className="media-file-item"
                       >
-                        <div className="media-file-icon">📄</div>
+                        <div className="media-file-icon"><FileIcon size={24} color="#0966FF" /></div>
                         <div className="media-file-info">
                           <div className="media-file-name">{file.name || 'File đính kèm'}</div>
                           <div className="media-file-meta">

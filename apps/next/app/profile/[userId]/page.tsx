@@ -17,10 +17,14 @@ import {
   uploadMediaApi,
   getUserReelsApi,
   Reel,
+  sendFriendRequestApi,
 } from "@zola/app/api";
 import { useComments } from "@zola/app/hooks/useSocial";
 import { AppLayout } from "@zola/app/components/AppLayout";
 import { FacebookNavbarWeb } from "@zola/app/components/FacebookNavbar.web";
+import { AvatarCropModal } from "@zola/app/components/AvatarCropModal";
+import { PostCard } from "@zola/app/components/PostCard.web";
+import { ReactionType, reactToPostApi, removeReactionApi } from "@zola/app/api";
 import "@zola/app/styles/feed.css";
 import "@zola/app/styles/facebook-navbar.css";
 
@@ -43,12 +47,15 @@ const Profile = () => {
   const [user, setUser] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
+  const [postReactions, setPostReactions] = useState<Record<string, ReactionType | null>>({});
   const [hasNext, setHasNext] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlockedYou, setHasBlockedYou] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
+  const [friendRequestSent, setFriendRequestSent] = useState(false);
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [activeTab, setActiveTab] = useState<"posts" | "photos" | "about" | "friends" | "reels">("posts");
   const [activePhotoTab, setActivePhotoTab] = useState<"authored" | "tagged">("authored");
   const [aboutCategory, setAboutCategory] = useState<"overview" | "work" | "places" | "contact" | "relationship" | "details">("overview");
@@ -100,6 +107,7 @@ const Profile = () => {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarCropFile, setAvatarCropFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!targetUserId) return;
@@ -169,6 +177,22 @@ const Profile = () => {
     } catch (error: any) {
       console.error("Failed to unfriend user:", error);
       alert(error.response?.data?.error || "Không thể hủy kết bạn");
+    }
+  };
+
+  const handleSendFriendRequest = async () => {
+    if (isSendingRequest || friendRequestSent || isFriend) return;
+    
+    try {
+      setIsSendingRequest(true);
+      await sendFriendRequestApi(targetUserId);
+      setFriendRequestSent(true);
+      alert("Đã gửi lời mời kết bạn!");
+    } catch (error: any) {
+      console.error("Failed to send friend request:", error);
+      alert(error.response?.data?.error || error.message || "Không thể gửi lời mời kết bạn");
+    } finally {
+      setIsSendingRequest(false);
     }
   };
 
@@ -261,6 +285,69 @@ const Profile = () => {
       console.error("Failed to load posts:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSelectReaction = async (postId: string, reaction: ReactionType) => {
+    try {
+      await reactToPostApi(postId, reaction);
+      setPostReactions((prev) => ({ ...prev, [postId]: reaction }));
+      // Update post reaction count
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id === postId) {
+            const oldReaction = postReactions[postId];
+            const newReaction = reaction;
+            const reactionCounts = { ...(p.reactionCounts || {}) };
+            
+            // Decrease old reaction count
+            if (oldReaction) {
+              reactionCounts[oldReaction] = Math.max(0, (reactionCounts[oldReaction] || 0) - 1);
+            }
+            
+            // Increase new reaction count
+            reactionCounts[newReaction] = (reactionCounts[newReaction] || 0) + 1;
+            
+            return {
+              ...p,
+              reactionCounts,
+              likeCount: Object.values(reactionCounts).reduce((sum, count) => sum + count, 0),
+            };
+          }
+          return p;
+        })
+      );
+    } catch (error) {
+      console.error("Failed to react to post:", error);
+    }
+  };
+
+  const handleClearReaction = async (postId: string) => {
+    try {
+      await removeReactionApi(postId);
+      const oldReaction = postReactions[postId];
+      setPostReactions((prev) => {
+        const newReactions = { ...prev };
+        delete newReactions[postId];
+        return newReactions;
+      });
+      // Update post reaction count
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id === postId && oldReaction) {
+            const reactionCounts = { ...(p.reactionCounts || {}) };
+            reactionCounts[oldReaction] = Math.max(0, (reactionCounts[oldReaction] || 0) - 1);
+            return {
+              ...p,
+              reactionCounts,
+              likeCount: Object.values(reactionCounts).reduce((sum, count) => sum + count, 0),
+            };
+          }
+          return p;
+        })
+      );
+    } catch (error) {
+      console.error("Failed to remove reaction:", error);
     }
   };
 
@@ -521,19 +608,33 @@ const Profile = () => {
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("handleAvatarUpload called", e.target.files);
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
-      console.log("No file selected");
       return;
     }
     
-    console.log("Uploading avatar image:", file.name);
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Vui lòng chọn file ảnh");
+      return;
+    }
+    
+    // Show crop modal
+    setAvatarCropFile(file);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
+
+  const handleAvatarCropSave = async (croppedBlob: Blob) => {
     setIsUploadingAvatar(true);
     try {
-      const result = await uploadMediaApi(file);
+      // Convert blob to File
+      const croppedFile = new File([croppedBlob], "avatar.png", { type: "image/png" });
+      
+      console.log("Uploading cropped avatar image");
+      const result = await uploadMediaApi(croppedFile);
       console.log("Upload result:", result);
+      
       if (result.url) {
         console.log("Updating profile with avatar URL:", result.url);
         try {
@@ -586,7 +687,7 @@ const Profile = () => {
       alert("Không thể tải ảnh đại diện. Vui lòng thử lại.");
     } finally {
       setIsUploadingAvatar(false);
-      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      setAvatarCropFile(null);
     }
   };
 
@@ -616,6 +717,7 @@ const Profile = () => {
   );
 
   return (
+    <>
     <AppLayout header={header} hideSidebars={true}>
       <div className="profile-container">
         {/* Cover Photo */}
@@ -734,7 +836,7 @@ const Profile = () => {
                     accept="image/*"
                     ref={avatarInputRef}
                     style={{ display: "none" }}
-                    onChange={handleAvatarUpload}
+                    onChange={handleAvatarFileSelect}
                     disabled={isUploadingAvatar}
                   />
                   <label
@@ -802,9 +904,25 @@ const Profile = () => {
                     </div>
                   ) : (
                     <>
-                      <button className="profile-action-btn profile-action-btn--primary">
+                      <button 
+                        className="profile-action-btn profile-action-btn--primary"
+                        onClick={handleSendFriendRequest}
+                        disabled={isSendingRequest || friendRequestSent || isFriend}
+                        style={{
+                          opacity: (isSendingRequest || friendRequestSent || isFriend) ? 0.6 : 1,
+                          cursor: (isSendingRequest || friendRequestSent || isFriend) ? "not-allowed" : "pointer",
+                        }}
+                      >
                         <span>👤</span>
-                        <span>Thêm bạn bè</span>
+                        <span>
+                          {isSendingRequest 
+                            ? "Đang gửi..." 
+                            : friendRequestSent 
+                            ? "Đã gửi lời mời" 
+                            : isFriend 
+                            ? "Bạn bè" 
+                            : "Thêm bạn bè"}
+                        </span>
                       </button>
                       <button className="profile-action-btn profile-action-btn--secondary">
                         <span>💬</span>
@@ -908,7 +1026,29 @@ const Profile = () => {
           </div>
 
           <div className="profile-info">
-            <h1 className="profile-name">{user.name || "Người dùng"}</h1>
+            <h1 className="profile-name" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {user.name || "Người dùng"}
+              {user.isVerified && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: "#1877f2",
+                    color: "white",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                  }}
+                  title="Verified"
+                >
+                  ✓
+                </span>
+              )}
+            </h1>
             {user.email && <p className="profile-email">{user.email}</p>}
           </div>
 
@@ -1401,7 +1541,13 @@ const Profile = () => {
 
                 <div className="profile-posts-container">
                   {posts.map((post) => (
-                    <PostCard key={post._id} post={post} navigate={navigate} />
+                    <PostCard
+                      key={post._id}
+                      post={post}
+                      reaction={postReactions[post._id] || null}
+                      onSelectReaction={handleSelectReaction}
+                      onClearReaction={handleClearReaction}
+                    />
                   ))}
                   {isLoading && (
                     <div style={{ textAlign: "center", padding: "16px", color: "#B0B3B8" }}>
@@ -1870,6 +2016,14 @@ const Profile = () => {
     </div>
   )}
     </AppLayout>
+    {avatarCropFile && (
+      <AvatarCropModal
+        imageFile={avatarCropFile}
+        onClose={() => setAvatarCropFile(null)}
+        onSave={handleAvatarCropSave}
+      />
+    )}
+    </>
   );
 };
 
@@ -2021,140 +2175,6 @@ const InlineEditForm = ({
     </div>
   </div>
 );
-
-const PostCard = ({ post, navigate }: { post: any; navigate: (path: string) => void }) => {
-  const [showComments, setShowComments] = useState(false);
-  const { items, loadMore, createComment, isLoading, hasNext } = useComments(post._id);
-  const [commentDraft, setCommentDraft] = useState("");
-
-  const handleCommentSubmit = async () => {
-    const text = commentDraft.trim();
-    if (!text) return;
-    await createComment(text);
-    setCommentDraft("");
-  };
-
-  const author = post.author || { name: `User ${post.authorId}`, _id: post.authorId };
-
-  return (
-    <article className="feed-card">
-      <div className="feed-post-header">
-        <div className="feed-post-author">
-          <div
-            className="feed-post-avatar"
-            onClick={() => navigate(`/profile/${author._id}`)}
-            style={{ cursor: "pointer" }}
-          >
-            {author.avatar ? (
-              <img src={author.avatar} alt={author.name} />
-            ) : (
-              <div className="feed-post-avatar-initials">
-                {author.name?.charAt(0)?.toUpperCase() || "U"}
-              </div>
-            )}
-          </div>
-          <div>
-            <div
-              className="feed-post-author-name"
-              onClick={() => navigate(`/profile/${author._id}`)}
-              style={{ cursor: "pointer" }}
-            >
-              {author.name}
-            </div>
-            <div className="feed-post-meta">
-              {new Date(post.createdAt).toLocaleString("vi-VN", {
-                day: "numeric",
-                month: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="feed-post-content">{post.content}</div>
-      {post.media && post.media.length > 0 && (
-        <div className="feed-post-media">
-          {post.media.map((m: any, i: number) => (
-            <div key={i} className="feed-post-media-item">
-              {m.type === "image" || (typeof m.type === "string" && m.type.startsWith("image/")) ? (
-                <img src={m.url} alt="" className="feed-post-image" />
-              ) : m.type === "video" || (typeof m.type === "string" && m.type.startsWith("video/")) ? (
-                <video src={m.url} controls className="feed-post-video" style={{ width: "100%", maxHeight: "600px", borderRadius: "8px" }} />
-              ) : (
-                <img src={m.url} alt="" className="feed-post-image" />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="feed-post-social">
-        <div className="feed-post-reaction-summary">
-          <span className="feed-post-reaction-total">👍 {post.likeCount || 0}</span>
-        </div>
-        <span className="feed-post-comment-count">{post.commentCount || 0} bình luận</span>
-      </div>
-      <div className="feed-post-actions">
-        <button className="feed-post-action-btn">
-          <span>👍</span>
-          <span>Thích</span>
-        </button>
-        <button className="feed-post-action-btn" onClick={() => setShowComments((v) => !v)}>
-          <span>💬</span>
-          <span>Bình luận</span>
-        </button>
-      </div>
-
-      {showComments && (
-        <div className="feed-comments">
-          {items.map((c) => {
-            const commentAuthor = c.author || { name: `User ${c.authorId}`, _id: c.authorId };
-            return (
-              <div key={c._id} className="feed-comment-item">
-                <div className="feed-comment-author">
-                  <span
-                    onClick={() => navigate(`/profile/${commentAuthor._id}`)}
-                    style={{ cursor: "pointer", fontWeight: 600, color: "var(--text-primary)" }}
-                  >
-                    {commentAuthor.name}
-                  </span>
-                  <span style={{ opacity: 0.6, marginLeft: 8, fontSize: "12px" }}>
-                    {new Date(c.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-                <div className="feed-comment-content">{c.content}</div>
-              </div>
-            );
-          })}
-          {hasNext && (
-            <button
-              onClick={() => loadMore()}
-              disabled={isLoading}
-              style={{ padding: "8px 12px", fontSize: "14px", fontWeight: 600, color: "#667eea", background: "transparent", border: "none", cursor: "pointer" }}
-            >
-              Xem thêm bình luận
-            </button>
-          )}
-          <div style={{ marginTop: "12px" }}>
-            <input
-              value={commentDraft}
-              onChange={(e) => setCommentDraft(e.target.value)}
-              placeholder="Viết bình luận..."
-              className="feed-comment-input"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleCommentSubmit();
-                }
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </article>
-  );
-};
 
 export default Profile;
 

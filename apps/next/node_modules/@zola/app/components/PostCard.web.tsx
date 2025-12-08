@@ -1,20 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Post, ReactionType, getCurrentUserId, getUserById } from "../api";
 import { useComments } from "../hooks/useSocial";
 import { CommentIcon } from "./CommentIcon";
 import { ShareIcon } from "./ShareIcon";
 import { SharePostModal } from "./SharePostModal";
+import {
+  ReactionLikeIcon,
+  ReactionLoveIcon,
+  ReactionHahaIcon,
+  ReactionWowIcon,
+  ReactionSadIcon,
+  ReactionAngryIcon,
+} from "./ReactionIcons";
 
 type PostWithSavedMeta = Post & { savedAt?: string };
 
-const REACTIONS: { type: ReactionType; emoji: string; label: string }[] = [
-  { type: "LIKE", emoji: "👍", label: "Thích" },
-  { type: "LOVE", emoji: "❤️", label: "Yêu thích" },
-  { type: "HAHA", emoji: "😆", label: "Haha" },
-  { type: "WOW", emoji: "😮", label: "Wow" },
-  { type: "SAD", emoji: "😢", label: "Buồn" },
-  { type: "ANGRY", emoji: "😡", label: "Phẫn nộ" },
+const REACTIONS: { type: ReactionType; emoji: string; label: string; IconComponent: React.FC<{ size?: number; className?: string }> }[] = [
+  { type: "LIKE", emoji: "👍", label: "Thích", IconComponent: ReactionLikeIcon },
+  { type: "LOVE", emoji: "❤️", label: "Yêu thích", IconComponent: ReactionLoveIcon },
+  { type: "HAHA", emoji: "😆", label: "Haha", IconComponent: ReactionHahaIcon },
+  { type: "WOW", emoji: "😮", label: "Wow", IconComponent: ReactionWowIcon },
+  { type: "SAD", emoji: "😢", label: "Buồn", IconComponent: ReactionSadIcon },
+  { type: "ANGRY", emoji: "😡", label: "Phẫn nộ", IconComponent: ReactionAngryIcon },
 ];
 
 type Props = {
@@ -198,9 +206,29 @@ export const PostCard = ({
             <span
               className="feed-post-author-name"
               onClick={goToProfile}
-              style={{ cursor: "pointer" }}
+              style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
             >
               {author.name}
+              {(author as any).isVerified && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    background: "#1877f2",
+                    color: "white",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                  }}
+                  title="Verified"
+                >
+                  ✓
+                </span>
+              )}
             </span>
             <div className="feed-post-meta-wrapper">
               <span className="feed-post-meta">
@@ -456,7 +484,7 @@ export const PostCard = ({
         <div className="feed-post-reaction-summary">
           {displayedReactions.map((item) => (
             <span key={item.type} className="feed-post-reaction-icon">
-              {item.emoji}
+              <item.IconComponent size={20} />
             </span>
           ))}
           {totalReactions > 0 && <span className="feed-post-reaction-total">{totalReactions}</span>}
@@ -475,20 +503,35 @@ export const PostCard = ({
             className="feed-post-reaction-button"
             onClick={handleReactionButtonClick}
           >
-            <span>{currentReaction ? "❤️" : "👍"}</span>
-            <span>{currentReaction ? "Bạn đã thích" : "Thích"}</span>
+            {(() => {
+              const currentReactionData = currentReaction 
+                ? REACTIONS.find(r => r.type === currentReaction) 
+                : null;
+              const IconComponent = currentReactionData?.IconComponent || ReactionLikeIcon;
+              const label = currentReactionData?.label || "Thích";
+              return (
+                <>
+                  <span className="feed-post-reaction-btn-icon">
+                    <IconComponent size={18} />
+                  </span>
+                  <span>{label}</span>
+                </>
+              );
+            })()}
           </button>
 
           {pickerVisible && (
-            <div className="reaction-picker" ref={pickerRef}>
+            <div className="reaction-picker reaction-picker--svg" ref={pickerRef}>
               {REACTIONS.map((item) => (
                 <button
                   key={item.type}
                   type="button"
                   onClick={() => handleReactionSelect(item.type)}
+                  title={item.label}
                 >
-                  <span className="reaction-emoji">{item.emoji}</span>
-                  <span className="reaction-label">{item.label}</span>
+                  <span className="reaction-emoji">
+                    <item.IconComponent size={32} />
+                  </span>
                 </button>
               ))}
             </div>

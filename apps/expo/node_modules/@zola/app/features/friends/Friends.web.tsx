@@ -14,6 +14,7 @@ import {
 } from "@zola/app/api";
 import { useFriendSuggestions } from "@zola/app/hooks/useSocial";
 import { FacebookNavbarWeb } from "@zola/app/components/FacebookNavbar.web";
+import { HomeIcon, MessengerIcon, FriendsIcon } from "@zola/app/components/Icons";
 import "@zola/app/styles/feed.css";
 import "@zola/app/styles/facebook-navbar.css";
 
@@ -128,15 +129,21 @@ const FriendsScreen = () => {
           <aside className="feed-sidebar">
             <div className="feed-nav-section-title">Menu</div>
             <div className="feed-nav-item" onClick={() => router.push("/feed")}>
-              <div className="feed-nav-icon">🏠</div>
+              <div className="feed-nav-icon">
+                <HomeIcon size={24} color="currentColor" />
+              </div>
               <span>Bảng tin</span>
             </div>
             <div className="feed-nav-item" onClick={() => router.push("/conversations")}>
-              <div className="feed-nav-icon">💬</div>
+              <div className="feed-nav-icon">
+                <MessengerIcon size={24} color="currentColor" />
+              </div>
               <span>Tin nhắn</span>
             </div>
             <div className="feed-nav-item feed-nav-item--active">
-              <div className="feed-nav-icon">👥</div>
+              <div className="feed-nav-icon">
+                <FriendsIcon size={24} color="currentColor" />
+              </div>
               <span>Bạn bè</span>
             </div>
           </aside>

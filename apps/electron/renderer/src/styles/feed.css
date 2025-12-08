@@ -1045,6 +1045,79 @@ body {
   font-size: 10px;
 }
 
+/* SVG Reaction Icons Styles */
+.feed-post-reaction-icon--svg {
+  width: 20px;
+  height: 20px;
+  margin-left: -4px;
+  position: relative;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--glass-bg);
+}
+
+.feed-post-reaction-icon--svg:first-child {
+  margin-left: 0;
+}
+
+.feed-post-reaction-icon--svg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.feed-post-reaction-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-bouncy);
+}
+
+.feed-post-reaction-button-icon svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* SVG Reaction Picker */
+.reaction-picker--svg {
+  padding: var(--spacing-md);
+  gap: var(--spacing-xs);
+}
+
+.reaction-picker-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-width: 60px;
+}
+
+.reaction-picker-btn:hover {
+  transform: translateY(-8px) scale(1.15);
+}
+
+.reaction-emoji--svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-bouncy);
+}
+
+.reaction-emoji--svg svg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transition: var(--transition-bouncy);
+}
+
+.reaction-picker-btn:hover .reaction-emoji--svg svg {
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+  transform: scale(1.1);
+}
+
+/* Animation for reaction icons on hover */
+@keyframes reactionBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.reaction-picker-btn:hover .reaction-emoji--svg {
+  animation: reactionBounce 0.3s ease-in-out;
+}
+
 /* ========================================
    COMMENTS
    ======================================== */

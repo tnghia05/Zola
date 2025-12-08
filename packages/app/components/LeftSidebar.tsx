@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useNavigate } from "react-router-dom";
+import { HomeIcon, MessengerIcon, FriendsIcon, SearchIcon, BookmarkIcon } from "./Icons";
 import "../styles/feed.css";
 
 interface LeftSidebarProps {
@@ -48,7 +49,9 @@ export const LeftSidebar = ({ currentUser, activeRoute = "/" }: LeftSidebarProps
         className={`feed-nav-item ${activeRoute === "/" || activeRoute === "/feed" ? "feed-nav-item--active" : ""}`}
         onClick={() => navigate("/feed")}
       >
-        <div className="feed-nav-icon">🏠</div>
+        <div className="feed-nav-icon">
+          <HomeIcon size={24} color="currentColor" />
+        </div>
         <span>Bảng tin</span>
       </div>
 
@@ -56,7 +59,9 @@ export const LeftSidebar = ({ currentUser, activeRoute = "/" }: LeftSidebarProps
         className={`feed-nav-item ${activeRoute === "/conversations" ? "feed-nav-item--active" : ""}`}
         onClick={() => navigate("/conversations")}
       >
-        <div className="feed-nav-icon">💬</div>
+        <div className="feed-nav-icon">
+          <MessengerIcon size={24} color="currentColor" />
+        </div>
         <span>Tin nhắn</span>
       </div>
 
@@ -64,7 +69,9 @@ export const LeftSidebar = ({ currentUser, activeRoute = "/" }: LeftSidebarProps
         className={`feed-nav-item ${activeRoute === "/friends" ? "feed-nav-item--active" : ""}`}
         onClick={() => navigate("/friends")}
       >
-        <div className="feed-nav-icon">👥</div>
+        <div className="feed-nav-icon">
+          <FriendsIcon size={24} color="currentColor" />
+        </div>
         <span>Bạn bè</span>
       </div>
 
@@ -72,7 +79,9 @@ export const LeftSidebar = ({ currentUser, activeRoute = "/" }: LeftSidebarProps
         className={`feed-nav-item ${activeRoute === "/search" ? "feed-nav-item--active" : ""}`}
         onClick={() => navigate("/search")}
       >
-        <div className="feed-nav-icon">🔍</div>
+        <div className="feed-nav-icon">
+          <SearchIcon size={24} color="currentColor" />
+        </div>
         <span>Tìm kiếm</span>
       </div>
 
@@ -80,7 +89,9 @@ export const LeftSidebar = ({ currentUser, activeRoute = "/" }: LeftSidebarProps
         className={`feed-nav-item ${activeRoute === "/saved" ? "feed-nav-item--active" : ""}`}
         onClick={() => navigate("/saved")}
       >
-        <div className="feed-nav-icon">🔖</div>
+        <div className="feed-nav-icon">
+          <BookmarkIcon size={24} color="currentColor" />
+        </div>
         <span>Bài viết đã lưu</span>
       </div>
     </>

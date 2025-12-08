@@ -232,7 +232,29 @@ export const ReelPlayer = ({
               </div>
             )}
             <div>
-              <div style={{ fontWeight: 600, fontSize: "14px" }}>{author.name}</div>
+              <div style={{ fontWeight: 600, fontSize: "14px", display: "flex", alignItems: "center", gap: 4 }}>
+                {author.name}
+                {(author as any).isVerified && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: "#1877f2",
+                      color: "white",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                    title="Verified"
+                  >
+                    ✓
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           {reel.caption && (

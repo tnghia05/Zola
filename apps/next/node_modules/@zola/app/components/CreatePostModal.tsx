@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { uploadMediaApi, getFriends, getUsersByIds, UserProfile } from "../api";
+import { CameraIcon, FriendsIcon, GlobeIcon, LockIcon } from "./Icons";
 import "../styles/feed.css";
 
 interface CreatePostModalProps {
@@ -220,15 +221,15 @@ export const CreatePostModal = ({
                     >
                       {visibility === "PUBLIC" ? (
                         <>
-                          <span>🌐</span> Công khai
+                          <span className="visibility-icon"><GlobeIcon size={14} color="currentColor" /></span> Công khai
                         </>
                       ) : visibility === "FRIENDS" ? (
                         <>
-                          <span>👥</span> Bạn bè
+                          <span className="visibility-icon"><FriendsIcon size={14} color="currentColor" /></span> Bạn bè
                         </>
                       ) : (
                         <>
-                          <span>🔒</span> Chỉ mình tôi
+                          <span className="visibility-icon"><LockIcon size={14} color="currentColor" /></span> Chỉ mình tôi
                         </>
                       )}
                       <span>▼</span>
@@ -242,7 +243,7 @@ export const CreatePostModal = ({
                           }}
                           className={visibility === "PUBLIC" ? "active" : ""}
                         >
-                          <span>🌐</span>
+                          <span className="visibility-icon"><GlobeIcon size={18} color="currentColor" /></span>
                           <div>
                             <div>Công khai</div>
                             <div className="create-post-modal-privacy-menu-desc">
@@ -257,7 +258,7 @@ export const CreatePostModal = ({
                           }}
                           className={visibility === "FRIENDS" ? "active" : ""}
                         >
-                          <span>👥</span>
+                          <span className="visibility-icon"><FriendsIcon size={18} color="currentColor" /></span>
                           <div>
                             <div>Bạn bè</div>
                             <div className="create-post-modal-privacy-menu-desc">
@@ -272,7 +273,7 @@ export const CreatePostModal = ({
                           }}
                           className={visibility === "ONLY_ME" ? "active" : ""}
                         >
-                          <span>🔒</span>
+                          <span className="visibility-icon"><LockIcon size={18} color="currentColor" /></span>
                           <div>
                             <div>Chỉ mình tôi</div>
                             <div className="create-post-modal-privacy-menu-desc">
@@ -335,7 +336,9 @@ export const CreatePostModal = ({
                 type="button"
                 title="Ảnh/Video"
               >
-                <span className="create-post-modal-action-icon">📷</span>
+                <span className="create-post-modal-action-icon">
+                  <CameraIcon size={20} color="#45bd62" />
+                </span>
                 <span>Ảnh/Video</span>
               </button>
               <div className="create-post-modal-action-wrapper" ref={tagMenuRef}>
@@ -345,7 +348,9 @@ export const CreatePostModal = ({
                   title="Gắn thẻ bạn bè"
                   onClick={() => setShowTagMenu(!showTagMenu)}
                 >
-                  <span className="create-post-modal-action-icon">👤</span>
+                  <span className="create-post-modal-action-icon">
+                    <FriendsIcon size={20} color="#1877f2" />
+                  </span>
                   <span>Gắn thẻ bạn bè</span>
                 </button>
                 {showTagMenu && (

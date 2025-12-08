@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { uploadMediaApi, getFriends, getUsersByIds, UserProfile, createReelApi } from "../api";
+import { ReelIcon, FriendsIcon, GlobeIcon, LockIcon } from "./Icons";
 import "../styles/feed.css";
 
 interface CreateReelModalProps {
@@ -298,7 +299,9 @@ export const CreateReelModal = ({
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#2a2b2c")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "#242526")}
               >
-                <div style={{ fontSize: "48px", marginBottom: "12px" }}>🎬</div>
+                <div style={{ marginBottom: "12px", display: "flex", justifyContent: "center" }}>
+                  <ReelIcon size={48} color="#0966FF" />
+                </div>
                 <div style={{ color: "#e4e6eb", fontSize: "16px", fontWeight: 600, marginBottom: "4px" }}>
                   Chọn video để đăng
                 </div>
@@ -487,10 +490,10 @@ export const CreateReelModal = ({
                 justifyContent: "space-between",
               }}
             >
-              <span>
-                {visibility === "PUBLIC" && "🌐 Công khai"}
-                {visibility === "FRIENDS" && "👥 Bạn bè"}
-                {visibility === "ONLY_ME" && "🔒 Chỉ mình tôi"}
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {visibility === "PUBLIC" && <><GlobeIcon size={16} color="currentColor" /> Công khai</>}
+                {visibility === "FRIENDS" && <><FriendsIcon size={16} color="currentColor" /> Bạn bè</>}
+                {visibility === "ONLY_ME" && <><LockIcon size={16} color="currentColor" /> Chỉ mình tôi</>}
               </span>
               <span>▼</span>
             </button>
@@ -511,9 +514,9 @@ export const CreateReelModal = ({
                 }}
               >
                 {[
-                  { value: "PUBLIC", label: "🌐 Công khai", desc: "Mọi người có thể xem" },
-                  { value: "FRIENDS", label: "👥 Bạn bè", desc: "Chỉ bạn bè có thể xem" },
-                  { value: "ONLY_ME", label: "🔒 Chỉ mình tôi", desc: "Chỉ bạn có thể xem" },
+                  { value: "PUBLIC", label: "Công khai", desc: "Mọi người có thể xem", Icon: GlobeIcon },
+                  { value: "FRIENDS", label: "Bạn bè", desc: "Chỉ bạn bè có thể xem", Icon: FriendsIcon },
+                  { value: "ONLY_ME", label: "Chỉ mình tôi", desc: "Chỉ bạn có thể xem", Icon: LockIcon },
                 ].map((option) => (
                   <button
                     key={option.value}
@@ -545,7 +548,9 @@ export const CreateReelModal = ({
                       }
                     }}
                   >
-                    <span style={{ fontWeight: 600 }}>{option.label}</span>
+                    <span style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
+                      <option.Icon size={16} color="currentColor" /> {option.label}
+                    </span>
                     <span style={{ fontSize: "12px", color: "#b0b3b8" }}>{option.desc}</span>
                   </button>
                 ))}
