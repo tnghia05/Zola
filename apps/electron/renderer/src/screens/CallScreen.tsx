@@ -760,7 +760,7 @@ export default function CallScreen() {
                 <div className="call-name">{opponentName}</div>
                 {!isConnected && (
                   <div className="call-status">
-                    {isInitiator ? 'Đang gọi...' : 'Cuộc gọi đến...'}
+                    {isInitiator ? 'Đang gọi...' : (acceptedFromModal ? 'Đang kết nối...' : 'Cuộc gọi đến...')}
                   </div>
                 )}
               </div>

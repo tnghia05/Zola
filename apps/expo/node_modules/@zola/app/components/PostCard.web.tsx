@@ -63,6 +63,17 @@ export const PostCard = ({
   } | null>(null);
 
   const author = post.author || { name: `User ${post.authorId}`, _id: post.authorId };
+  const goToPost = () => {
+    try {
+      const raw = sessionStorage.getItem("post_detail_cache");
+      const cache = raw ? JSON.parse(raw) : {};
+      cache[post._id] = post;
+      sessionStorage.setItem("post_detail_cache", JSON.stringify(cache));
+    } catch (err) {
+      console.warn("post_detail_cache failed", err);
+    }
+    router.push(`/post/${post._id}`);
+  };
   const canReact = typeof onSelectReaction === "function";
   const currentReaction = reaction;
 
@@ -187,7 +198,7 @@ export const PostCard = ({
 
   return (
     <article className="feed-card" style={{ marginTop: 8 }}>
-      <div className="feed-post-header">
+      <div className="feed-post-header" onClick={goToPost} style={{ cursor: "pointer" }}>
         <div className="feed-post-author">
           <div
             className="feed-post-avatar"
@@ -282,7 +293,10 @@ export const PostCard = ({
         <div className="feed-post-menu" ref={menuRef}>
           <button
             className="feed-post-menu-button"
-            onClick={() => setMenuOpen((prev) => !prev)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((prev) => !prev);
+            }}
             aria-label="Tùy chọn bài viết"
           >
             ⋯
@@ -441,7 +455,7 @@ export const PostCard = ({
       
       {/* Hiển thị content bình thường nếu không phải shared post */}
       {!post.sharedFrom && (
-        <div className="feed-post-content">
+        <div className="feed-post-content" onClick={goToPost} style={{ cursor: "pointer" }}>
           {post.content.split(/(#\w+)/g).map((part, i) => {
             if (part.startsWith('#')) {
               const tag = part.substring(1);
@@ -464,7 +478,7 @@ export const PostCard = ({
         </div>
       )}
       {post.media && post.media.length > 0 && (
-        <div className="feed-post-media">
+        <div className="feed-post-media" onClick={goToPost} style={{ cursor: "pointer" }}>
           {post.media.map((m, i) => (
             <div key={i} className="feed-post-media-item">
               {m.type === "image" ? (

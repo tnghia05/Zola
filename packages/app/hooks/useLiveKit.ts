@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent, RemoteTrack, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
+import { 
+  Room, 
+  RoomEvent, 
+  RemoteTrack, 
+  LocalVideoTrack, 
+  LocalAudioTrack,
+  VideoPresets,
+  RoomOptions,
+  VideoCodec
+} from 'livekit-client';
 
 // NOTE: This hook is now web-first. React Native globals registration has been
 // removed to avoid bundling 'react-native' in Next.js. If you need native
@@ -12,10 +21,16 @@ interface UseLiveKitOptions {
   autoSubscribe?: boolean;
 }
 
+export interface RemoteParticipantTracks {
+  audioTrack?: RemoteTrack;
+  videoTrack?: RemoteTrack;
+}
+
 export interface UseLiveKitResult {
   room: Room | null;
   localStream: MediaStream | null;
   remoteStreams: Map<string, MediaStream>;
+  remoteTracks: Map<string, RemoteParticipantTracks>; // New: for direct track attachment
   isConnected: boolean;
   error: string | null;
   connect: () => Promise<void>;
@@ -35,6 +50,7 @@ export function useLiveKit({
   const [room, setRoom] = useState<Room | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [remoteTracks, setRemoteTracks] = useState<Map<string, RemoteParticipantTracks>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -76,11 +92,22 @@ export function useLiveKit({
   const addRemoteTrack = useCallback((participantId: string, mediaTrack: MediaStreamTrack) => {
     setRemoteStreams((prev) => {
       const next = new Map(prev);
-      const existing = next.get(participantId) ?? new MediaStream();
-      if (!existing.getTracks().some((t) => t.id === mediaTrack.id)) {
-        existing.addTrack(mediaTrack);
+      const existing = next.get(participantId);
+      
+      // Create a NEW MediaStream with all existing tracks + new track
+      // This ensures React detects the state change
+      const allTracks: MediaStreamTrack[] = [];
+      if (existing) {
+        existing.getTracks().forEach(t => {
+          if (t.id !== mediaTrack.id) {
+            allTracks.push(t);
+          }
+        });
       }
-      next.set(participantId, existing);
+      allTracks.push(mediaTrack);
+      
+      const newStream = new MediaStream(allTracks);
+      next.set(participantId, newStream);
       return next;
     });
   }, []);
@@ -135,10 +162,27 @@ export function useLiveKit({
     const promise = (async () => {
       try {
         setError(null);
-        const newRoom = new Room({
+        
+        // Optimized room options for better performance
+        const roomOptions: RoomOptions = {
           adaptiveStream: true,
           dynacast: true,
-        });
+          // Video capture settings - use 720p for better performance
+          videoCaptureDefaults: {
+            resolution: VideoPresets.h720.resolution,
+            facingMode: 'user',
+          },
+          // Video publish settings - lower bitrate for smoother streaming
+          publishDefaults: {
+            videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
+            videoCodec: 'vp8' as VideoCodec, // VP8 has better compatibility
+            dtx: true, // Discontinuous transmission for audio - saves bandwidth
+            red: true, // Redundant encoding for audio - better quality
+            stopMicTrackOnMute: false,
+          },
+        };
+        
+        const newRoom = new Room(roomOptions);
 
         roomRef.current = newRoom;
         setRoom(newRoom);
@@ -151,19 +195,61 @@ export function useLiveKit({
           setIsConnected(false);
           setLocalStream(null);
           setRemoteStreams(new Map());
+          setRemoteTracks(new Map());
         });
 
         newRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
           if (track instanceof RemoteTrack) {
+            // Store the RemoteTrack for direct attachment in components
+            setRemoteTracks((prev) => {
+              const next = new Map(prev);
+              const existing = next.get(participant.identity) || {};
+              if (track.kind === 'video') {
+                next.set(participant.identity, { ...existing, videoTrack: track });
+              } else if (track.kind === 'audio') {
+                next.set(participant.identity, { ...existing, audioTrack: track });
+              }
+              return next;
+            });
+            
+            // Also add to remoteStreams for backward compatibility
             const mediaTrack = (track as any).mediaStreamTrack as MediaStreamTrack | undefined;
             if (mediaTrack) {
               addRemoteTrack(participant.identity, mediaTrack);
             }
           }
         });
+        
+        // Handle track unmuted events - re-add track when unmuted
+        newRoom.on(RoomEvent.TrackUnmuted, (publication, participant) => {
+          if (publication.track instanceof RemoteTrack) {
+            const mediaTrack = (publication.track as any).mediaStreamTrack as MediaStreamTrack | undefined;
+            if (mediaTrack) {
+              addRemoteTrack(participant.identity, mediaTrack);
+            }
+          }
+        });
+        
+        newRoom.on(RoomEvent.ParticipantConnected, () => {
+          // Participant connected - tracks will be handled by TrackSubscribed event
+        });
 
         newRoom.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
           if (track instanceof RemoteTrack) {
+            // Remove from remoteTracks
+            setRemoteTracks((prev) => {
+              const next = new Map(prev);
+              const existing = next.get(participant.identity);
+              if (existing) {
+                if (track.kind === 'video') {
+                  next.set(participant.identity, { ...existing, videoTrack: undefined });
+                } else if (track.kind === 'audio') {
+                  next.set(participant.identity, { ...existing, audioTrack: undefined });
+                }
+              }
+              return next;
+            });
+            
             const mediaTrack = (track as any).mediaStreamTrack as MediaStreamTrack | undefined;
             removeRemoteTrack(participant.identity, mediaTrack);
           }
@@ -175,9 +261,27 @@ export function useLiveKit({
             next.delete(participant.identity);
             return next;
           });
+          setRemoteTracks((prev) => {
+            const next = new Map(prev);
+            next.delete(participant.identity);
+            return next;
+          });
         });
 
         await newRoom.connect(currentUrl, currentToken);
+        
+        // Subscribe to any existing remote participant tracks
+        newRoom.remoteParticipants.forEach((participant) => {
+          participant.trackPublications.forEach((pub) => {
+            if (pub.track && pub.track instanceof RemoteTrack) {
+              const mediaTrack = (pub.track as any).mediaStreamTrack as MediaStreamTrack | undefined;
+              if (mediaTrack) {
+                addRemoteTrack(participant.identity, mediaTrack);
+              }
+            }
+          });
+        });
+        
         await newRoom.localParticipant.enableCameraAndMicrophone();
         buildMediaStreamFromLocal(newRoom);
       } catch (err: any) {
@@ -217,6 +321,7 @@ export function useLiveKit({
     room,
     localStream,
     remoteStreams,
+    remoteTracks,
     isConnected,
     error,
     connect,

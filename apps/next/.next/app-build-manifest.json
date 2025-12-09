@@ -34,11 +34,6 @@
       "static/chunks/main-app.js",
       "static/css/app/call/page.css",
       "static/chunks/app/call/page.js"
-    ],
-    "/not-found": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/not-found.js"
     ]
   }
 }

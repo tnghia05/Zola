@@ -1,5 +1,12 @@
 import { ReactNode } from 'react';
 
+interface ActiveCallInfo {
+  id: string;
+  type: 'video' | 'audio';
+  callType: 'p2p' | 'sfu';
+  livekitRoomName?: string;
+}
+
 interface ChatHeaderProps {
   title: string;
   subtitle?: string;
@@ -10,6 +17,8 @@ interface ChatHeaderProps {
   onAudioCall?: () => void;
   onToggleInfo?: () => void;
   isInfoVisible?: boolean;
+  activeCall?: ActiveCallInfo | null;
+  onJoinCall?: (callId: string, callType: string, livekitRoomName?: string) => void;
 }
 
 export function ChatHeader({ 
@@ -22,7 +31,15 @@ export function ChatHeader({
   onAudioCall,
   onToggleInfo,
   isInfoVisible,
+  activeCall,
+  onJoinCall,
 }: ChatHeaderProps) {
+  const handleJoinCall = () => {
+    if (activeCall && onJoinCall) {
+      onJoinCall(activeCall.id, activeCall.callType, activeCall.livekitRoomName);
+    }
+  };
+
   return (
     <div className="chat-header-content">
       <div className="chat-header-left">
@@ -48,8 +65,29 @@ export function ChatHeader({
           ) : null}
         </div>
       </div>
+      
+      {/* Active call banner */}
+      {activeCall && (
+        <div className="chat-header-active-call">
+          <div className="chat-header-active-call-indicator">
+            <span className="chat-header-active-call-pulse" />
+            <span className="chat-header-active-call-text">
+              {activeCall.type === 'video' ? '📹' : '📞'} Cuộc gọi đang diễn ra
+            </span>
+          </div>
+          <button
+            className="chat-header-join-call-btn"
+            onClick={handleJoinCall}
+            type="button"
+          >
+            Tham gia
+          </button>
+        </div>
+      )}
+      
       <div className="chat-header-actions">
-        {onVideoCall && (
+        {/* Hide call buttons when there's an active call */}
+        {!activeCall && onVideoCall && (
           <button
             className="chat-header-action-button"
             onClick={onVideoCall}
@@ -59,7 +97,7 @@ export function ChatHeader({
             📹
           </button>
         )}
-        {onAudioCall && (
+        {!activeCall && onAudioCall && (
           <button
             className="chat-header-action-button"
             onClick={onAudioCall}

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { getSocket } from "../socket";
-import { acceptCall, rejectCall, getOpponentInfo } from "../api";
+import { acceptCall, rejectCall, getOpponentInfo, getConversations, getCall } from "../api";
+import "../styles/floating-chat.css";
 
 type IncomingCallData = {
   callId: string;
@@ -10,6 +11,8 @@ type IncomingCallData = {
   initiatorId: string;
   type: "video" | "audio";
   roomId?: string;
+  callType?: "p2p" | "sfu";
+  livekitRoomName?: string;
 };
 
 export function GlobalIncomingCall() {
@@ -17,6 +20,8 @@ export function GlobalIncomingCall() {
   const [callerName, setCallerName] = useState<string>("Ai đó");
   const [callerAvatar, setCallerAvatar] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGroupCall, setIsGroupCall] = useState(false);
+  const [groupName, setGroupName] = useState<string | null>(null);
 
   // Listen for socket events globally
   useEffect(() => {
@@ -55,7 +60,7 @@ export function GlobalIncomingCall() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingCall, isProcessing]);
 
-  // Load caller info
+  // Load caller/group info and call details
   useEffect(() => {
     if (!incomingCall) return;
 
@@ -63,15 +68,63 @@ export function GlobalIncomingCall() {
 
     const loadInfo = async () => {
       try {
-        const info = await getOpponentInfo(incomingCall.conversationId);
+        // Fetch call info to get callType and livekitRoomName if not provided
+        if (!incomingCall.callType || !incomingCall.livekitRoomName) {
+          try {
+            const callInfo = await getCall(incomingCall.callId);
+            if (!cancelled && callInfo) {
+              // Update incomingCall with call info
+              setIncomingCall(prev => prev ? {
+                ...prev,
+                callType: callInfo.callType || prev.callType,
+                livekitRoomName: callInfo.metadata?.livekitRoomName || prev.livekitRoomName,
+              } : prev);
+              console.log("[GlobalIncomingCall] Call info loaded:", {
+                callType: callInfo.callType,
+                livekitRoomName: callInfo.metadata?.livekitRoomName
+              });
+            }
+          } catch (err) {
+            console.warn("[GlobalIncomingCall] Could not fetch call info:", err);
+          }
+        }
+        
+        // Check if this is a group call by getting conversation info
+        const conversations = await getConversations();
+        const conversation = conversations.find((c: any) => c._id === incomingCall.conversationId);
+        
         if (cancelled) return;
-        setCallerName(info?.user?.name || info?.user?.email || "Ai đó");
-        setCallerAvatar(info?.user?.avatar || null);
+        
+        if (conversation?.isGroup) {
+          // Group call
+          setIsGroupCall(true);
+          setGroupName(conversation.title || `Nhóm (${conversation.members?.length || 0} thành viên)`);
+          setCallerAvatar(conversation.avatar || null);
+          
+          // Also try to get the initiator's name
+          try {
+            const info = await getOpponentInfo(incomingCall.conversationId);
+            if (!cancelled && info?.user?.name) {
+              setCallerName(info.user.name);
+            }
+          } catch {
+            // Ignore error, use group name
+          }
+        } else {
+          // 1-1 call
+          setIsGroupCall(false);
+          setGroupName(null);
+          const info = await getOpponentInfo(incomingCall.conversationId);
+          if (cancelled) return;
+          setCallerName(info?.user?.name || info?.user?.email || "Ai đó");
+          setCallerAvatar(info?.user?.avatar || null);
+        }
       } catch (err) {
         console.error("[GlobalIncomingCall] Failed to load caller info", err);
         if (!cancelled) {
           setCallerName("Ai đó");
           setCallerAvatar(null);
+          setIsGroupCall(false);
         }
       }
     };
@@ -81,11 +134,15 @@ export function GlobalIncomingCall() {
     return () => {
       cancelled = true;
     };
-  }, [incomingCall]);
+  }, [incomingCall?.callId, incomingCall?.conversationId]);
 
   const clearState = () => {
     setIncomingCall(null);
     setIsProcessing(false);
+    setIsGroupCall(false);
+    setGroupName(null);
+    setCallerName("Ai đó");
+    setCallerAvatar(null);
   };
 
   const handleAccept = async () => {
@@ -100,10 +157,27 @@ export function GlobalIncomingCall() {
 
     // Điều hướng sang màn hình call của web
     if (typeof window !== "undefined") {
-      const url = `/call?callId=${encodeURIComponent(incomingCall.callId)}&conversationId=${encodeURIComponent(
-        incomingCall.conversationId
-      )}&acceptedFromModal=true`;
-      window.location.href = url;
+      const params = new URLSearchParams({
+        callId: incomingCall.callId,
+        conversationId: incomingCall.conversationId,
+        acceptedFromModal: 'true',
+        isIncoming: 'true',
+      });
+      
+      // Add call type params if available
+      if (incomingCall.callType) {
+        params.set('callType', incomingCall.callType);
+      } else if (isGroupCall) {
+        // Group calls use SFU
+        params.set('callType', 'sfu');
+      }
+      
+      if (incomingCall.livekitRoomName) {
+        params.set('livekitRoomName', incomingCall.livekitRoomName);
+      }
+      
+      console.log("[GlobalIncomingCall] Navigating to call screen with params:", Object.fromEntries(params));
+      window.location.href = `/call?${params.toString()}`;
     }
 
     clearState();
@@ -134,6 +208,11 @@ export function GlobalIncomingCall() {
 
   if (!incomingCall) return null;
 
+  const displayName = isGroupCall ? (groupName || "Nhóm") : callerName;
+  const displaySubtitle = isGroupCall 
+    ? `${callerName} đang gọi ${incomingCall.type === "video" ? "video" : "thoại"} nhóm`
+    : (incomingCall.type === "video" ? "Gọi video" : "Gọi thoại");
+
   return (
     <div
       className="global-incoming-call-overlay"
@@ -142,23 +221,25 @@ export function GlobalIncomingCall() {
         e.stopPropagation();
       }}
     >
-      <div className="global-incoming-call-card" onClick={(e) => e.stopPropagation()}>
-        <div className="global-incoming-call-header">Cuộc gọi đến</div>
+      <div className={`global-incoming-call-card ${isGroupCall ? "global-incoming-call-card--group" : ""}`} onClick={(e) => e.stopPropagation()}>
+        <div className="global-incoming-call-header">
+          {isGroupCall ? "Cuộc gọi nhóm" : "Cuộc gọi đến"}
+        </div>
         <div className="global-incoming-call-body">
-          <div className="global-incoming-call-avatar">
+          <div className={`global-incoming-call-avatar ${isGroupCall ? "global-incoming-call-avatar--group" : ""}`}>
             {callerAvatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={callerAvatar} alt={callerName} />
+              <img src={callerAvatar} alt={displayName} />
             ) : (
               <div className="global-incoming-call-avatar-fallback">
-                {callerName.charAt(0).toUpperCase()}
+                {isGroupCall ? "👥" : displayName.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
           <div className="global-incoming-call-info">
-            <div className="global-incoming-call-name">{callerName}</div>
+            <div className="global-incoming-call-name">{displayName}</div>
             <div className="global-incoming-call-type">
-              {incomingCall.type === "video" ? "Gọi video" : "Gọi thoại"}
+              {displaySubtitle}
             </div>
           </div>
         </div>
@@ -168,14 +249,14 @@ export function GlobalIncomingCall() {
             onClick={handleReject}
             disabled={isProcessing}
           >
-            Kết thúc
+            Từ chối
           </button>
           <button
             className="global-incoming-call-btn global-incoming-call-btn--accept"
             onClick={handleAccept}
             disabled={isProcessing}
           >
-            Trả lời
+            Tham gia
           </button>
         </div>
       </div>

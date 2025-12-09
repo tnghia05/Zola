@@ -9,6 +9,7 @@ import { useChatMessages } from '../../hooks/useChatMessages';
 import { useOpponentInfo } from '../../hooks/useOpponentInfo';
 import { useTypingStatus } from '../../hooks/useTypingStatus';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useActiveCall } from '../../hooks/useActiveCall';
 import { ChatMessage } from '../../types/chat';
 import { initiateCall } from '../../api';
 import { CallPopupManager } from '../../services/callPopup';
@@ -60,6 +61,7 @@ export function DesktopChat({
   const { info: opponentInfo } = useOpponentInfo(shouldLoadOpponent ? conversationId : undefined);
   const typing = useTypingStatus(conversationId, currentUserId ?? undefined);
   useNotifications(conversationId); // Enable notifications
+  const { activeCall } = useActiveCall(isGroup ? conversationId : undefined); // Only track active calls for groups
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [composerText, setComposerText] = useState('');
@@ -207,6 +209,15 @@ export function DesktopChat({
     }
   };
 
+  const handleJoinCall = (callId: string, callType: string, livekitRoomName?: string) => {
+    console.log('[DesktopChat] Joining existing call...', { callId, conversationId, callType, livekitRoomName });
+    
+    const popup = new CallPopupManager();
+    popup.openCallWindow(callId, conversationId, true, {
+      callType: callType as 'p2p' | 'sfu',
+      livekitRoomName,
+    });
+  };
 
   return (
     <>
@@ -221,6 +232,13 @@ export function DesktopChat({
             onAudioCall={handleAudioCall}
             onToggleInfo={onToggleInfo}
             isInfoVisible={isInfoVisible}
+            activeCall={activeCall ? {
+              id: activeCall.id,
+              type: activeCall.type,
+              callType: activeCall.callType,
+              livekitRoomName: activeCall.livekitRoomName,
+            } : null}
+            onJoinCall={handleJoinCall}
           />
         }
         messageArea={

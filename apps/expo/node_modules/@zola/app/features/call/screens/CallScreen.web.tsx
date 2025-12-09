@@ -44,21 +44,69 @@ export default function CallScreen() {
     const search = new URLSearchParams(window.location.search);
     const urlCallId = search.get('callId');
     const urlConversationId = search.get('conversationId');
-    console.log('[CallScreen] Parsed URL params:', { urlCallId, urlConversationId });
+    const urlAcceptedFromModal = search.get('acceptedFromModal');
+    const urlCallType = search.get('callType') as 'p2p' | 'sfu' | null;
+    const urlLivekitRoomName = search.get('livekitRoomName');
+    const urlIsIncoming = search.get('isIncoming');
+    
+    console.log('[CallScreen] Parsed URL params:', { 
+      urlCallId, 
+      urlConversationId, 
+      urlAcceptedFromModal,
+      urlCallType,
+      urlLivekitRoomName,
+      urlIsIncoming
+    });
+    
     if (urlCallId) {
       setCallId(urlCallId);
     }
     if (urlConversationId) {
-      setCallInfo((prev) =>
-        prev
+      setCallInfo((prev) => {
+        const newInfo = prev
           ? { ...prev, conversationId: urlConversationId }
           : {
               conversationId: urlConversationId,
               initiatorId: localUserId || '',
               remoteUserId: '',
-              type: 'video',
-            }
-      );
+              type: 'video' as const,
+            };
+        
+        // Add callType and livekitRoomName from URL params
+        if (urlCallType) {
+          newInfo.callType = urlCallType;
+        }
+        if (urlLivekitRoomName) {
+          newInfo.livekitRoomName = urlLivekitRoomName;
+        }
+        
+        return newInfo;
+      });
+    }
+    
+    // Check if user accepted from GlobalIncomingCall modal
+    if (urlAcceptedFromModal === 'true') {
+      console.log('[CallScreen] User accepted from modal, skipping incoming call UI');
+      setAcceptedFromModal(true);
+      
+      // If SFU call and we have livekitRoomName, fetch the token immediately
+      if (urlCallType === 'sfu' && urlLivekitRoomName && urlCallId) {
+        console.log('[CallScreen] Fetching LiveKit token for SFU call from modal...');
+        getLiveKitToken(urlCallId).then(tokenData => {
+          setLiveKitToken(tokenData.token);
+          setLiveKitUrl(tokenData.url);
+          console.log('[CallScreen] LiveKit token obtained from modal accept');
+        }).catch(err => {
+          console.error('[CallScreen] Error getting LiveKit token from modal accept:', err);
+        });
+      }
+    }
+    
+    // Set isInitiator based on URL param
+    if (urlIsIncoming === 'false') {
+      setIsInitiator(true);
+    } else if (urlIsIncoming === 'true') {
+      setIsInitiator(false);
     }
   }, [localUserId]);
 
@@ -88,6 +136,12 @@ export default function CallScreen() {
   // LiveKit state
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
   const [liveKitUrl, setLiveKitUrl] = useState<string>('');
+  const liveKitTokenRef = useRef<string | null>(null);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    liveKitTokenRef.current = liveKitToken;
+  }, [liveKitToken]);
 
   // Chỉ sử dụng useWebRTC cho P2P calls
   const isP2PCall = !callInfo?.callType || callInfo.callType === 'p2p';
@@ -123,6 +177,7 @@ export default function CallScreen() {
   const {
     localStream: liveKitLocalStream,
     remoteStreams: liveKitRemoteStreams,
+    remoteTracks: liveKitRemoteTracks,
     isConnected: liveKitIsConnected,
     error: liveKitError,
     connect: connectLiveKit,
@@ -543,6 +598,33 @@ export default function CallScreen() {
     // Remove startCall from deps to prevent re-triggering
   }, [acceptedFromModal, isInitiator, isConnected, callInfo, liveKitToken, connectLiveKit]);
 
+  // Auto-connect to LiveKit when token becomes available (for SFU calls)
+  const hasAutoConnectedLiveKitRef = useRef(false);
+  useEffect(() => {
+    if (
+      liveKitToken && 
+      callInfo?.callType === 'sfu' && 
+      !isConnected && 
+      !hasAutoConnectedLiveKitRef.current &&
+      (acceptedFromModal || isInitiator)
+    ) {
+      console.log('[CallScreen] LiveKit token available, auto-connecting...', {
+        hasToken: !!liveKitToken,
+        callType: callInfo.callType,
+        isConnected,
+        acceptedFromModal,
+        isInitiator
+      });
+      hasAutoConnectedLiveKitRef.current = true;
+      connectLiveKit().then(() => {
+        console.log('[CallScreen] ✅ Auto-connected to LiveKit successfully');
+      }).catch(err => {
+        console.error('[CallScreen] ❌ Error auto-connecting to LiveKit:', err);
+        hasAutoConnectedLiveKitRef.current = false; // Allow retry
+      });
+    }
+  }, [liveKitToken, callInfo?.callType, isConnected, acceptedFromModal, isInitiator, connectLiveKit]);
+
   const handleAccept = async () => {
     if (!callId) return;
     try {
@@ -630,8 +712,18 @@ export default function CallScreen() {
   const groupCallParticipants = React.useMemo(() => {
     if (isP2PCall) return [];
     
+    console.log('[CallScreen] Building groupCallParticipants from liveKitRemoteStreams:', {
+      remoteStreamsSize: liveKitRemoteStreams.size,
+      remoteStreamKeys: Array.from(liveKitRemoteStreams.keys())
+    });
+    
     const participants: Array<{ participantId: string; stream: MediaStream; name?: string; avatar?: string }> = [];
     liveKitRemoteStreams.forEach((stream, participantId) => {
+      console.log('[CallScreen] Adding remote participant:', {
+        participantId,
+        trackCount: stream.getTracks().length,
+        tracks: stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled }))
+      });
       participants.push({
         participantId,
         stream,
@@ -693,6 +785,7 @@ export default function CallScreen() {
               participants={groupCallParticipants}
               localStream={localStream}
               localParticipantId={localUserId || ''}
+              remoteTracks={liveKitRemoteTracks}
             />
           ) : (
             <div style={{ 
@@ -756,7 +849,7 @@ export default function CallScreen() {
                 <div className="call-name">{opponentName}</div>
                 {!isConnected && (
                   <div className="call-status">
-                    {isInitiator ? 'Đang gọi...' : 'Cuộc gọi đến...'}
+                    {isInitiator ? 'Đang gọi...' : (acceptedFromModal ? 'Đang kết nối...' : 'Cuộc gọi đến...')}
                   </div>
                 )}
               </div>

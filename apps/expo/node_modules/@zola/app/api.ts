@@ -274,6 +274,25 @@ export const getCall = async (callId: string) => {
 	return res.data;
 };
 
+export type ActiveCallResponse = {
+	activeCall: {
+		id: string;
+		conversationId: string;
+		initiatorId: string;
+		participants: string[];
+		type: 'video' | 'audio';
+		callType: 'p2p' | 'sfu';
+		status: string;
+		startedAt: string;
+		livekitRoomName?: string;
+	} | null;
+};
+
+export const getActiveCallForConversation = async (conversationId: string) => {
+	const res = await api.get<ActiveCallResponse>(`/calls/conversation/${conversationId}/active`);
+	return res.data;
+};
+
 export const getLiveKitToken = async (callId: string) => {
 	const res = await api.post<{ success: boolean; token: string; roomName: string; url: string }>(
 		`/calls/${callId}/livekit-token`
@@ -1089,6 +1108,12 @@ export const getPostsByHashtagApi = async (tag: string, cursor?: string) => {
   const params: any = {};
   if (cursor) params.cursor = cursor;
   const res = await api.get<FeedResponse>(`/social/hashtags/${encodeURIComponent(tag)}/posts`, { params });
+  return res.data;
+};
+
+// Single post detail
+export const getPostByIdApi = async (postId: string) => {
+  const res = await api.get<Post>(`/social/posts/${postId}`);
   return res.data;
 };
 
