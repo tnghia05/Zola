@@ -35,6 +35,16 @@ export interface ElectronAPI {
   // Deep link invites
   onDeepLinkInvite?: (callback: (payload: { inviteCode: string }) => void) => (() => void) | undefined;
   consumePendingInvites?: () => Promise<Array<{ inviteCode: string }>>;
+
+  // Auto-updater
+  checkForUpdates?: () => Promise<{ success?: boolean; error?: string }>;
+  restartAndInstallUpdate?: () => Promise<{ success?: boolean; error?: string }>;
+  onUpdateChecking?: (callback: () => void) => (() => void) | undefined;
+  onUpdateAvailable?: (callback: (info: { version: string }) => void) => (() => void) | undefined;
+  onUpdateNotAvailable?: (callback: (info: { version: string }) => void) => (() => void) | undefined;
+  onUpdateError?: (callback: (error: string) => void) => (() => void) | undefined;
+  onUpdateDownloadProgress?: (callback: (progress: { percent: number }) => void) => (() => void) | undefined;
+  onUpdateDownloaded?: (callback: (info: { version: string }) => void) => (() => void) | undefined;
 }
 
 declare global {

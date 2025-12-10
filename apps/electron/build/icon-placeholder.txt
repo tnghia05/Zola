@@ -1,0 +1,8 @@
+Placeholder for icon.png or icon.ico
+To add an icon:
+1. Create a 256x256 PNG image
+2. Save as build/icon.png (or convert to .ico for Windows)
+3. Electron-builder will use it automatically
+
+For now, electron-builder will use default icon.
+

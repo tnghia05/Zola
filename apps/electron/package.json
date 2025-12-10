@@ -2,13 +2,94 @@
   "name": "zola-electron",
   "version": "0.0.0",
   "private": true,
+  "main": "main/main.js",
   "scripts": {
-    "dev": "concurrently \"pnpm --filter zola-electron-main dev\" \"pnpm --filter zola-electron-renderer dev\"",
-    "build": "pnpm --filter zola-electron-main build",
+    "dev": "concurrently -n \"renderer,electron\" -c \"blue,green\" \"cd renderer && pnpm dev\" \"npx wait-on http://localhost:5173 && npx electron main/main.js\"",
+    "build": "cd renderer && pnpm build",
+    "prebuild:electron": "node scripts/bump-version.js",
+    "build:electron": "pnpm build && node scripts/build-with-env.js",
+    "build:installer": "pnpm build && electron-builder --win nsis",
+    "build:portable": "pnpm build && electron-builder --win portable",
     "lint": "echo \"Electron lint TODO\""
   },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "dotenv": "^17.2.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "fs-extra": "^11.3.2",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.zola.desktop",
+    "productName": "Zola Desktop",
+    "protocols": [
+      {
+        "name": "Zola Invite Links",
+        "schemes": [
+          "zola"
+        ]
+      }
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "YOUR_GITHUB_USERNAME",
+      "repo": "YOUR_REPO_NAME"
+    },
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "build"
+    },
+    "files": [
+      "main/**/*",
+      "renderer/dist/**/*",
+      "package.json"
+    ],
+    "asar": false,
+    "extraFiles": [
+      {
+        "from": "main",
+        "to": "main",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "sign": null,
+      "signingHashAlgorithms": null,
+      "signDlls": false,
+      "verifyUpdateCodeSignature": false,
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Zola Desktop",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
   }
 }
 

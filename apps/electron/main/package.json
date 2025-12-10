@@ -7,8 +7,10 @@
     "dev": "electron .",
     "build": "echo \"Main process build handled via electron-builder\""
   },
+  "description": "Zola Desktop Main Process (Electron)",
   "dependencies": {
-    "electron": "^28.1.0"
+    "electron": "^33.2.1",
+    "electron-updater": "^6.6.2"
   }
 }
 
