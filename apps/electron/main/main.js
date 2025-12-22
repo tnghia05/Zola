@@ -117,6 +117,9 @@ if (!isDev) {
   console.log('[COMMAND LINE] Production mode: Adding additional switches for file:// protocol');
   // Ensure getUserMedia works with file:// protocol
   app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+  // Allow network requests from file:// protocol
+  app.commandLine.appendSwitch('disable-web-security');
+  app.commandLine.appendSwitch('allow-running-insecure-content');
 }
 
 // ============================================================================
