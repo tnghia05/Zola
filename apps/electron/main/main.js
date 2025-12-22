@@ -390,7 +390,7 @@ function setupAutoUpdater() {
   
   // Configure auto-updater
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false; // Không tự động cài khi đóng app, để user chọn
   autoUpdater.checkForUpdatesAndNotify();
 
   // Check for updates every 4 hours
@@ -451,11 +451,11 @@ function setupAutoUpdater() {
       mainWindow.webContents.send('update-downloaded', info);
     }
     
-    // Show notification
+    // Show notification với option để user chọn khi nào cài
     if (Notification.isSupported()) {
       const notification = new Notification({
         title: 'Cập nhật đã tải xong',
-        body: 'App sẽ tự động cập nhật khi bạn đóng ứng dụng.',
+        body: `Phiên bản ${info.version} đã sẵn sàng. Click để cài đặt ngay hoặc đợi đến khi bạn đóng app.`,
         silent: false,
       });
       
@@ -463,6 +463,8 @@ function setupAutoUpdater() {
         if (mainWindow) {
           mainWindow.show();
           mainWindow.focus();
+          // Gửi event để renderer hiển thị dialog hỏi user có muốn cài ngay không
+          mainWindow.webContents.send('show-update-install-dialog', info);
         }
       });
       
@@ -527,11 +529,15 @@ ipcMain.handle('check-for-updates', () => {
 });
 
 // Restart and install update
+// Tham số: quitAndInstall(isSilent, isForceRunAfter)
+// isSilent = false: hiển thị dialog
+// isForceRunAfter = false: không force chạy app sau khi cài (giữ user data)
 ipcMain.handle('restart-and-install-update', () => {
   if (isDev) {
     return { error: 'Auto-update is disabled in development mode' };
   }
-  autoUpdater.quitAndInstall(false, true);
+  // false, false = không silent, không force run (giữ user data)
+  autoUpdater.quitAndInstall(false, false);
   return { success: true };
 });
 
