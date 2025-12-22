@@ -31,25 +31,57 @@ export function useLiveKit({ roomName, token, url }: UseLiveKitOptions): UseLive
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
   const roomRef = useRef<Room | null>(null);
+  
+  // Refs to track latest prop values (avoid closure issues)
+  const urlRef = useRef<string>(url);
+  const tokenRef = useRef<string>(token);
+  const roomNameRef = useRef<string>(roomName);
+  
+  useEffect(() => {
+    urlRef.current = url;
+  }, [url]);
+  
+  useEffect(() => {
+    tokenRef.current = token;
+  }, [token]);
+  
+  useEffect(() => {
+    roomNameRef.current = roomName;
+  }, [roomName]);
 
   // Kết nối đến LiveKit room
   const connect = useCallback(async () => {
+    // Use refs to get latest values (avoid closure issues)
+    const currentUrl = urlRef.current;
+    const currentToken = tokenRef.current;
+    const currentRoomName = roomNameRef.current;
     try {
       setError(null);
-      console.log('[LiveKit] Connecting to room:', roomName);
+      console.log('[LiveKit] Connecting to room:', currentRoomName);
+      console.log('[LiveKit] Current URL (from ref):', currentUrl);
+      console.log('[LiveKit] Current URL (from prop):', url);
+      console.log('[LiveKit] Current token (from ref):', currentToken ? 'Present' : 'Missing');
+      console.log('[LiveKit] Current token (from prop):', token ? 'Present' : 'Missing');
 
-      // Validate URL before attempting to connect
-      if (!url || !url.trim()) {
+      // Validate URL before attempting to connect (use ref value)
+      if (!currentUrl || !currentUrl.trim()) {
+        console.error('[LiveKit] ❌ URL validation failed:', {
+          urlFromRef: currentUrl,
+          urlFromProp: url,
+          urlType: typeof currentUrl,
+          urlLength: currentUrl?.length,
+          urlTrimmed: currentUrl?.trim()
+        });
         throw new Error('LiveKit URL is empty. Please check LIVEKIT_URL on backend.');
       }
 
       // Ensure URL is syntactically valid to avoid low‑level "Failed to construct \'URL\'" errors
       try {
         // eslint-disable-next-line no-new
-        new URL(url);
+        new URL(currentUrl);
       } catch (e) {
-        console.error('[LiveKit] Invalid LiveKit URL:', url, e);
-        throw new Error(`LiveKit URL is invalid: ${url}`);
+        console.error('[LiveKit] Invalid LiveKit URL:', currentUrl, e);
+        throw new Error(`LiveKit URL is invalid: ${currentUrl}`);
       }
 
       // Tạo room mới
@@ -152,8 +184,13 @@ export function useLiveKit({ roomName, token, url }: UseLiveKitOptions): UseLive
         });
       });
 
-      // Kết nối đến room
-      await newRoom.connect(url, token);
+      // Kết nối đến room (use ref values to ensure latest)
+      console.log('[LiveKit] Connecting with:', {
+        url: currentUrl,
+        token: currentToken ? 'Present' : 'Missing',
+        roomName: currentRoomName
+      });
+      await newRoom.connect(currentUrl, currentToken);
       console.log('[LiveKit] Room connection initiated');
 
       // Bật camera và microphone sau khi kết nối

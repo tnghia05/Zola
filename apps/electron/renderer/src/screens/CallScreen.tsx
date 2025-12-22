@@ -174,6 +174,16 @@ export default function CallScreen() {
     token: liveKitToken || '',
     url: liveKitUrl,
   });
+  
+  // Debug: Log when useLiveKit props change
+  useEffect(() => {
+    console.log('[CallScreen] useLiveKit props updated:', {
+      roomName: callInfo?.livekitRoomName || '',
+      hasToken: !!liveKitToken,
+      url: liveKitUrl,
+      urlLength: liveKitUrl?.length || 0
+    });
+  }, [callInfo?.livekitRoomName, liveKitToken, liveKitUrl]);
 
   // Chọn stream và controls dựa trên call type
   const localStream = isP2PCall ? p2pLocalStream : liveKitLocalStream;
@@ -631,6 +641,12 @@ export default function CallScreen() {
               url: currentUrl
             });
             try {
+              // Log current state before connecting
+              console.log('[CallScreen] About to call connectLiveKit() with current state:', {
+                liveKitUrl: liveKitUrl,
+                liveKitToken: liveKitToken ? 'Present' : 'Missing',
+                roomName: callInfo.livekitRoomName
+              });
               await connectLiveKit();
             } catch (err) {
               console.error('[CallScreen] Error connecting to LiveKit:', err);
@@ -670,29 +686,13 @@ export default function CallScreen() {
       hasAutoStartedRef.current = true;
       console.log('[CallScreen] Starting call from auto-start effect...');
       
-      // Wait for token/URL to be ready (with retry)
-      const waitForLiveKitReady = async (maxRetries = 10, delay = 500) => {
-        for (let i = 0; i < maxRetries; i++) {
-          if (liveKitToken && liveKitUrl && callInfo.livekitRoomName) {
-            return true;
-          }
-          console.log(`[CallScreen] Waiting for LiveKit token/URL (attempt ${i + 1}/${maxRetries})...`, {
-            hasToken: !!liveKitToken,
-            hasUrl: !!liveKitUrl,
-            url: liveKitUrl
-          });
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        return false;
-      };
-      
       setTimeout(async () => {
         if (isSFU) {
           // SFU: connect to LiveKit
           console.log('[CallScreen] Checking LiveKit readiness (non-initiator):', {
-            hasToken: !!liveKitToken,
-            hasUrl: !!liveKitUrl,
-            url: liveKitUrl,
+            hasToken: !!liveKitTokenRef.current,
+            hasUrl: !!liveKitUrlRef.current,
+            url: liveKitUrlRef.current,
             hasRoomName: !!callInfo.livekitRoomName
           });
           
@@ -710,6 +710,12 @@ export default function CallScreen() {
               url: currentUrl
             });
             try {
+              // Log current state before connecting
+              console.log('[CallScreen] About to call connectLiveKit() with current state:', {
+                liveKitUrl: liveKitUrl,
+                liveKitToken: liveKitToken ? 'Present' : 'Missing',
+                roomName: callInfo.livekitRoomName
+              });
               await connectLiveKit();
             } catch (err) {
               console.error('[CallScreen] Error connecting to LiveKit:', err);
