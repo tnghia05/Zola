@@ -65,8 +65,16 @@ app.commandLine.appendSwitch('enable-features', 'MediaDevicesGetUserMedia');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 // Enable screen capturing
 app.commandLine.appendSwitch('enable-usermedia-screen-capturing');
-// Force secure context for file:// protocol
+// Force secure context for file:// protocol (important for production builds)
 app.commandLine.appendSwitch('unsafely-treat-insecure-origin-as-secure', 'file://');
+// Additional switches for media permissions in production
+app.commandLine.appendSwitch('enable-features', 'MediaDevicesGetUserMedia,WebRTC');
+// Disable web security only in production (for file:// protocol)
+if (!isDev) {
+  console.log('[COMMAND LINE] Production mode: Adding additional switches for file:// protocol');
+  // Ensure getUserMedia works with file:// protocol
+  app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+}
 
 // ============================================================================
 // 3. REGISTER CUSTOM PROTOCOL
@@ -264,12 +272,15 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     autoHideMenuBar: true,
-    webPreferences: {
+      webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
       webSecurity: false, // Allow loading local files in production
+      // Additional settings for media access in production
+      allowRunningInsecureContent: true, // Allow insecure content (for file://)
+      experimentalFeatures: true, // Enable experimental features
     },
     show: false,
     backgroundColor: '#1a1a1a',
@@ -331,26 +342,27 @@ function createWindow() {
     console.log('[WINDOW] Loading from dev server: http://localhost:5173');
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    // In production, use file:// protocol for better Windows permission handling
+    // In production, prefer app:// protocol for better security context and media permissions
+    // file:// protocol can have issues with getUserMedia in some Electron versions
     const htmlPath = path.join(app.getAppPath(), 'renderer', 'dist', 'index.html');
     const fileUrl = `file://${htmlPath.replace(/\\/g, '/')}`;
-    console.log('[WINDOW] Loading from file:// protocol:', fileUrl);
+    const appUrl = `app://renderer/dist/index.html`;
+    
+    console.log('[WINDOW] Production mode: Loading app...');
     console.log('[WINDOW] App path:', app.getAppPath());
     console.log('[WINDOW] HTML path:', htmlPath);
+    console.log('[WINDOW] Trying app:// protocol first (better for media permissions)...');
     
-    mainWindow.loadFile(htmlPath).catch((error) => {
-      console.error('[WINDOW] Error loading file with loadFile:', error);
-      // Fallback to loadURL with file://
-      mainWindow.loadURL(fileUrl).catch((urlError) => {
-        console.error('[WINDOW] Error loading file:// URL:', urlError);
-        // Last resort: try app:// protocol
-        try {
-          const appUrl = `app://renderer/dist/index.html`;
-          console.log('[WINDOW] Falling back to app:// protocol:', appUrl);
-          mainWindow.loadURL(appUrl);
-        } catch (err) {
-          console.error('[WINDOW] All loading methods failed:', err);
-        }
+    // Try app:// protocol first (better secure context for getUserMedia)
+    mainWindow.loadURL(appUrl).catch((appError) => {
+      console.warn('[WINDOW] app:// protocol failed, trying file://:', appError);
+      // Fallback to file:// protocol
+      mainWindow.loadFile(htmlPath).catch((fileError) => {
+        console.error('[WINDOW] file:// protocol also failed:', fileError);
+        // Last resort: try loadURL with file://
+        mainWindow.loadURL(fileUrl).catch((urlError) => {
+          console.error('[WINDOW] All loading methods failed:', urlError);
+        });
       });
     });
   }
@@ -544,29 +556,58 @@ ipcMain.handle('restart-and-install-update', () => {
 // Get app version from package.json
 ipcMain.handle('get-app-version', () => {
   try {
-    // Try to read from the electron package.json (in production, it's in resources/app)
     let pkgJsonPath;
+    let version = null;
+    
     if (isDev) {
       // In dev, package.json is in the electron directory
       pkgJsonPath = path.join(__dirname, '..', 'package.json');
     } else {
-      // In production, package.json is in resources/app
-      pkgJsonPath = path.join(app.getAppPath(), 'package.json');
+      // In production, try multiple possible locations
+      const appPath = app.getAppPath();
+      const possiblePaths = [
+        path.join(appPath, 'package.json'), // resources/app/package.json
+        path.join(__dirname, '..', 'package.json'), // main/../package.json
+        path.join(process.resourcesPath || appPath, 'app', 'package.json'), // resources/app/package.json (alternative)
+      ];
+      
+      // Try each path until we find one that exists
+      for (const possiblePath of possiblePaths) {
+        if (fs.existsSync(possiblePath)) {
+          pkgJsonPath = possiblePath;
+          break;
+        }
+      }
     }
     
     console.log('[IPC] Reading version from:', pkgJsonPath);
-    console.log('[IPC] File exists:', fs.existsSync(pkgJsonPath));
+    console.log('[IPC] File exists:', pkgJsonPath ? fs.existsSync(pkgJsonPath) : false);
     console.log('[IPC] isDev:', isDev);
     console.log('[IPC] __dirname:', __dirname);
     console.log('[IPC] app.getAppPath():', app.getAppPath());
+    console.log('[IPC] process.resourcesPath:', process.resourcesPath);
     
-    if (fs.existsSync(pkgJsonPath)) {
+    if (pkgJsonPath && fs.existsSync(pkgJsonPath)) {
       const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
-      console.log('[IPC] Package.json version:', pkgJson.version);
-      return pkgJson.version || '0.0.0';
+      version = pkgJson.version;
+      console.log('[IPC] Package.json version:', version);
+      return version || '0.0.0';
     }
     
-    console.log('[IPC] Package.json not found, using app.getVersion()');
+    // If package.json not found, try to read from the main process's package.json location
+    // In production build, package.json should be copied to resources/app
+    console.log('[IPC] Package.json not found at expected locations, trying fallback...');
+    
+    // Last resort: try reading from where electron-builder puts it
+    const fallbackPath = path.join(app.getAppPath(), '..', '..', 'package.json');
+    if (fs.existsSync(fallbackPath)) {
+      const pkgJson = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
+      version = pkgJson.version;
+      console.log('[IPC] Found version in fallback path:', version);
+      return version || '0.0.0';
+    }
+    
+    console.log('[IPC] Package.json not found anywhere, using app.getVersion()');
     // Fallback to app.getVersion() if package.json not found
     return app.getVersion();
   } catch (error) {
