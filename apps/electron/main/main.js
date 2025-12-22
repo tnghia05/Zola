@@ -12,6 +12,49 @@ let unsentDeepLinkPayloads = [];
 const isWindows = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 
+// Cache app version on startup
+let cachedAppVersion = null;
+function getAppVersionFromPackage() {
+  if (cachedAppVersion) {
+    return cachedAppVersion;
+  }
+  
+  try {
+    let pkgJsonPath;
+    if (isDev) {
+      pkgJsonPath = path.join(__dirname, '..', 'package.json');
+    } else {
+      // In production, try multiple paths
+      const appPath = app.getAppPath();
+      const possiblePaths = [
+        path.join(appPath, 'package.json'),
+        path.join(__dirname, '..', 'package.json'),
+        path.join(process.resourcesPath || appPath, 'app', 'package.json'),
+      ];
+      
+      for (const possiblePath of possiblePaths) {
+        if (fs.existsSync(possiblePath)) {
+          pkgJsonPath = possiblePath;
+          break;
+        }
+      }
+    }
+    
+    if (pkgJsonPath && fs.existsSync(pkgJsonPath)) {
+      const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+      cachedAppVersion = pkgJson.version || '0.0.0';
+      console.log('[VERSION] Cached app version:', cachedAppVersion, 'from:', pkgJsonPath);
+      return cachedAppVersion;
+    }
+  } catch (error) {
+    console.error('[VERSION] Error reading package.json:', error);
+  }
+  
+  // Fallback
+  cachedAppVersion = app.getVersion();
+  return cachedAppVersion;
+}
+
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
@@ -491,6 +534,9 @@ function setupAutoUpdater() {
 app.whenReady().then(() => {
   console.log('[APP] App is ready');
   
+  // 0. Cache app version early
+  getAppVersionFromPackage();
+  
   // 1. Register custom protocol first
   registerAppProtocol();
   registerDeepLinkProtocol();
@@ -553,67 +599,9 @@ ipcMain.handle('restart-and-install-update', () => {
   return { success: true };
 });
 
-// Get app version from package.json
+// Get app version from package.json (use cached version)
 ipcMain.handle('get-app-version', () => {
-  try {
-    let pkgJsonPath;
-    let version = null;
-    
-    if (isDev) {
-      // In dev, package.json is in the electron directory
-      pkgJsonPath = path.join(__dirname, '..', 'package.json');
-    } else {
-      // In production, try multiple possible locations
-      const appPath = app.getAppPath();
-      const possiblePaths = [
-        path.join(appPath, 'package.json'), // resources/app/package.json
-        path.join(__dirname, '..', 'package.json'), // main/../package.json
-        path.join(process.resourcesPath || appPath, 'app', 'package.json'), // resources/app/package.json (alternative)
-      ];
-      
-      // Try each path until we find one that exists
-      for (const possiblePath of possiblePaths) {
-        if (fs.existsSync(possiblePath)) {
-          pkgJsonPath = possiblePath;
-          break;
-        }
-      }
-    }
-    
-    console.log('[IPC] Reading version from:', pkgJsonPath);
-    console.log('[IPC] File exists:', pkgJsonPath ? fs.existsSync(pkgJsonPath) : false);
-    console.log('[IPC] isDev:', isDev);
-    console.log('[IPC] __dirname:', __dirname);
-    console.log('[IPC] app.getAppPath():', app.getAppPath());
-    console.log('[IPC] process.resourcesPath:', process.resourcesPath);
-    
-    if (pkgJsonPath && fs.existsSync(pkgJsonPath)) {
-      const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
-      version = pkgJson.version;
-      console.log('[IPC] Package.json version:', version);
-      return version || '0.0.0';
-    }
-    
-    // If package.json not found, try to read from the main process's package.json location
-    // In production build, package.json should be copied to resources/app
-    console.log('[IPC] Package.json not found at expected locations, trying fallback...');
-    
-    // Last resort: try reading from where electron-builder puts it
-    const fallbackPath = path.join(app.getAppPath(), '..', '..', 'package.json');
-    if (fs.existsSync(fallbackPath)) {
-      const pkgJson = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
-      version = pkgJson.version;
-      console.log('[IPC] Found version in fallback path:', version);
-      return version || '0.0.0';
-    }
-    
-    console.log('[IPC] Package.json not found anywhere, using app.getVersion()');
-    // Fallback to app.getVersion() if package.json not found
-    return app.getVersion();
-  } catch (error) {
-    console.error('[IPC] Error reading package.json version:', error);
-    return app.getVersion();
-  }
+  return getAppVersionFromPackage();
 });
 
 // Request media permissions - for testing/debugging
