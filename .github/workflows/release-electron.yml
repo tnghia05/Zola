@@ -33,7 +33,7 @@ jobs:
         run: |
           pnpm --filter zola-electron run build:installer -- --publish always
 
-      - name: Upload Electron artifacts (fallback download)
+      - name: Upload Electron artifacts
         uses: actions/upload-artifact@v4
         with:
           name: zola-electron-dist
