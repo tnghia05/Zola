@@ -554,11 +554,19 @@ ipcMain.handle('get-app-version', () => {
       pkgJsonPath = path.join(app.getAppPath(), 'package.json');
     }
     
+    console.log('[IPC] Reading version from:', pkgJsonPath);
+    console.log('[IPC] File exists:', fs.existsSync(pkgJsonPath));
+    console.log('[IPC] isDev:', isDev);
+    console.log('[IPC] __dirname:', __dirname);
+    console.log('[IPC] app.getAppPath():', app.getAppPath());
+    
     if (fs.existsSync(pkgJsonPath)) {
       const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+      console.log('[IPC] Package.json version:', pkgJson.version);
       return pkgJson.version || '0.0.0';
     }
     
+    console.log('[IPC] Package.json not found, using app.getVersion()');
     // Fallback to app.getVersion() if package.json not found
     return app.getVersion();
   } catch (error) {
