@@ -5,7 +5,7 @@
   "main": "main/main.js",
   "scripts": {
     "dev": "concurrently -n \"renderer,electron\" -c \"blue,green\" \"cd renderer && pnpm dev\" \"npx wait-on http://localhost:5173 && npx electron main/main.js\"",
-    "build": "cd renderer && pnpm build",
+    "build": "pnpm --filter zola-electron-renderer build",
     "prebuild:electron": "node scripts/bump-version.js",
     "build:electron": "pnpm build && node scripts/build-with-env.js",
     "build:installer": "pnpm build && electron-builder --win nsis",
