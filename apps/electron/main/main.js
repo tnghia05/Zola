@@ -294,6 +294,33 @@ function setupPermissions() {
   console.log('[PERMISSIONS] setPermissionCheckHandler: registered');
 
   console.log('[PERMISSIONS] Permission handlers setup complete');
+  
+  // Allow all network requests (important for production builds with file:// or app:// protocol)
+  // This ensures API calls work even when loading from local files
+  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
+    // Allow all requests, especially to external APIs
+    callback({});
+  });
+  
+  // Fix CORS headers for API requests
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    // Only modify headers for API requests (not local files)
+    if (details.url.startsWith('http://') || details.url.startsWith('https://')) {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Access-Control-Allow-Origin': ['*'],
+          'Access-Control-Allow-Methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+          'Access-Control-Allow-Headers': ['Content-Type', 'Authorization', 'X-Requested-With'],
+          'Access-Control-Allow-Credentials': ['true'],
+        },
+      });
+    } else {
+      callback({ responseHeaders: details.responseHeaders });
+    }
+  });
+  
+  console.log('[PERMISSIONS] Network request handlers registered');
 }
 
 // ============================================================================
