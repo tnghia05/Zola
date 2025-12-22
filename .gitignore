@@ -1,1 +1,12 @@
 node_modules
+dist-electron
+.turbo
+dist
+build
+*.exe
+*.dmg
+*.AppImage
+.DS_Store
+*.log
+.env.local
+.env.*.local
