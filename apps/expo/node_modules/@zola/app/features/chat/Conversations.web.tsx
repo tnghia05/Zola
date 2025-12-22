@@ -1,6 +1,7 @@
  "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getConversations, Conversation, logout, setAuthToken } from '../../api';
 import { disconnectSocket, connectSocket, getSocket } from '../../socket';
 import '../../styles/conversations.css';
@@ -27,6 +28,7 @@ const APP_VERSION = packageJson.version || '1.0.0';
 
 export default function ConversationsScreen() {
   console.log('💬 ConversationsScreen component rendering...');
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -336,11 +338,10 @@ export default function ConversationsScreen() {
             <span className="desktop-header-version">v{APP_VERSION}</span>
           </h1>
           <div className="desktop-header-actions">
-          {/* Các nút điều hướng sẽ được xử lý ở cấp Next.js, tạm thời chỉ hiển thị icon */}
-            <button className="header-button" title="Mạng xã hội Day2">
+            <button className="header-button" title="Mạng xã hội Day2" onClick={() => router.push('/feed')}>
               📰
             </button>
-            <button className="header-button" title="Cài đặt">
+            <button className="header-button" title="Cài đặt" onClick={() => router.push('/settings')}>
               ⚙️
             </button>
             <button className="header-button" onClick={handleLogout}>

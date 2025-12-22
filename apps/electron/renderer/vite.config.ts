@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@zola/app': path.resolve(__dirname, '../../../packages/app'),
+      'next/navigation': path.resolve(__dirname, './src/adapters/next-navigation.ts'),
     },
   },
   server: {

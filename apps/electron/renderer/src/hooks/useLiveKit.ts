@@ -38,6 +38,20 @@ export function useLiveKit({ roomName, token, url }: UseLiveKitOptions): UseLive
       setError(null);
       console.log('[LiveKit] Connecting to room:', roomName);
 
+      // Validate URL before attempting to connect
+      if (!url || !url.trim()) {
+        throw new Error('LiveKit URL is empty. Please check LIVEKIT_URL on backend.');
+      }
+
+      // Ensure URL is syntactically valid to avoid low‑level "Failed to construct \'URL\'" errors
+      try {
+        // eslint-disable-next-line no-new
+        new URL(url);
+      } catch (e) {
+        console.error('[LiveKit] Invalid LiveKit URL:', url, e);
+        throw new Error(`LiveKit URL is invalid: ${url}`);
+      }
+
       // Tạo room mới
       const newRoom = new Room();
       roomRef.current = newRoom;

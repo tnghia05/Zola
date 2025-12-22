@@ -155,29 +155,47 @@ export function GlobalIncomingCall() {
       console.error("[GlobalIncomingCall] Error accepting call (will still navigate)", err);
     }
 
-    // Điều hướng sang màn hình call của web
+    // Điều hướng sang màn hình call
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams({
-        callId: incomingCall.callId,
-        conversationId: incomingCall.conversationId,
-        acceptedFromModal: 'true',
-        isIncoming: 'true',
-      });
-      
-      // Add call type params if available
-      if (incomingCall.callType) {
-        params.set('callType', incomingCall.callType);
-      } else if (isGroupCall) {
-        // Group calls use SFU
-        params.set('callType', 'sfu');
+      // Detect Electron: check electronAPI hoặc hash trong URL hoặc userAgent
+      const isElectron = !!(
+        (window as any).electronAPI ||
+        window.location.hash.includes("#/") ||
+        window.location.href.includes("/#/") ||
+        navigator.userAgent.toLowerCase().includes("electron")
+      );
+
+      console.log("[GlobalIncomingCall] isElectron:", isElectron, "hash:", window.location.hash);
+
+      if (isElectron) {
+        // Electron dùng HashRouter
+        const target = `#/call/${incomingCall.callId}`;
+        console.log("[GlobalIncomingCall] Navigating via hash to call screen:", target);
+        window.location.hash = target;
+      } else {
+        // Web dùng BrowserRouter
+        const params = new URLSearchParams({
+          callId: incomingCall.callId,
+          conversationId: incomingCall.conversationId,
+          acceptedFromModal: 'true',
+          isIncoming: 'true',
+        });
+        
+        // Add call type params if available
+        if (incomingCall.callType) {
+          params.set('callType', incomingCall.callType);
+        } else if (isGroupCall) {
+          // Group calls use SFU
+          params.set('callType', 'sfu');
+        }
+        
+        if (incomingCall.livekitRoomName) {
+          params.set('livekitRoomName', incomingCall.livekitRoomName);
+        }
+        
+        console.log("[GlobalIncomingCall] Navigating to call screen with params:", Object.fromEntries(params));
+        window.location.href = `/call?${params.toString()}`;
       }
-      
-      if (incomingCall.livekitRoomName) {
-        params.set('livekitRoomName', incomingCall.livekitRoomName);
-      }
-      
-      console.log("[GlobalIncomingCall] Navigating to call screen with params:", Object.fromEntries(params));
-      window.location.href = `/call?${params.toString()}`;
     }
 
     clearState();

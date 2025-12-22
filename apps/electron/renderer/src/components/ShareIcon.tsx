@@ -2,7 +2,7 @@
 // Sử dụng SVG file từ Figma (Frame 19)
 // File: src/assets/icons/share.svg
 
-import shareSvg from '../assets/icons/share.svg';
+import shareSvg from '@zola/app/assets/icons/share.svg';
 
 type ShareIconProps = {
   size?: number;

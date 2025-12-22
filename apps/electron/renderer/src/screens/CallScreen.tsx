@@ -8,6 +8,31 @@ import { useOpponentInfo } from '../hooks/useOpponentInfo';
 import { GroupCallGrid } from '../components/call/GroupCallGrid';
 import '../styles/call.css';
 
+// Normalize LiveKit URL coming from backend to avoid "Failed to construct 'URL'" errors
+function normalizeLiveKitUrl(rawUrl?: string | null): string {
+  if (!rawUrl) return '';
+
+  let url = rawUrl.trim();
+
+  // If backend accidentally sends only host without protocol
+  if (!/^https?:\/\//i.test(url) && !/^wss?:\/\//i.test(url)) {
+    // Default to secure WebSocket
+    url = `wss://${url}`;
+  }
+
+  // If HTTP(S) URL is provided, LiveKit client accepts both ws/wss and http/https,
+  // but we still validate format so we don't pass an invalid value down.
+  try {
+    // This will throw if URL is still invalid
+    // eslint-disable-next-line no-new
+    new URL(url);
+    return url;
+  } catch {
+    console.error('[CallScreen] Invalid LiveKit URL from backend:', rawUrl);
+    return '';
+  }
+}
+
 export default function CallScreen() {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
@@ -202,7 +227,11 @@ export default function CallScreen() {
       if (locationState.callType === 'sfu' && locationState.livekitRoomName && callId) {
         getLiveKitToken(callId).then(tokenData => {
           setLiveKitToken(tokenData.token);
-          setLiveKitUrl(tokenData.url);
+          const normalizedUrl = normalizeLiveKitUrl(tokenData.url);
+          setLiveKitUrl(normalizedUrl);
+          if (!normalizedUrl) {
+            console.error('[CallScreen] LiveKit URL is invalid or empty. Please check LIVEKIT_URL on backend.');
+          }
           console.log('[CallScreen] LiveKit token obtained from location state');
         }).catch(err => {
           console.error('[CallScreen] Error getting LiveKit token:', err);
@@ -246,7 +275,11 @@ export default function CallScreen() {
           try {
             const tokenData = await getLiveKitToken(callId);
             setLiveKitToken(tokenData.token);
-            setLiveKitUrl(tokenData.url);
+            const normalizedUrl = normalizeLiveKitUrl(tokenData.url);
+            setLiveKitUrl(normalizedUrl);
+            if (!normalizedUrl) {
+              console.error('[CallScreen] LiveKit URL is invalid or empty. Please check LIVEKIT_URL on backend.');
+            }
             console.log('[CallScreen] LiveKit token obtained');
           } catch (err) {
             console.error('[CallScreen] Error getting LiveKit token:', err);
@@ -325,7 +358,11 @@ export default function CallScreen() {
           try {
             const tokenData = await getLiveKitToken(callId);
             setLiveKitToken(tokenData.token);
-            setLiveKitUrl(tokenData.url);
+            const normalizedUrl = normalizeLiveKitUrl(tokenData.url);
+            setLiveKitUrl(normalizedUrl);
+            if (!normalizedUrl) {
+              console.error('[CallScreen] LiveKit URL is invalid or empty. Please check LIVEKIT_URL on backend.');
+            }
             console.log('[CallScreen] LiveKit token obtained from incoming call');
           } catch (err) {
             console.error('[CallScreen] Error getting LiveKit token:', err);
@@ -442,115 +479,95 @@ export default function CallScreen() {
 
   // Auto-start call for initiator when callInfo is ready
   useEffect(() => {
-    // Initiator: auto-start immediately when callInfo is ready
-    if (isInitiator && !isConnected && callInfo && callInfo.conversationId) {
+    // Skip if already connected or already started
+    if (isConnected || hasAutoStartedRef.current) return;
+    
+    // Initiator: auto-start when callInfo is fully ready (including remoteUserId for P2P)
+    const isSFU = callInfo?.callType === 'sfu';
+    const isP2PReady = !isSFU && callInfo?.remoteUserId;
+    const isSFUReady = isSFU && callInfo?.livekitRoomName;
+    
+    if (isInitiator && callInfo && callInfo.conversationId && (isP2PReady || isSFUReady)) {
       console.log('[CallScreen] Auto-start effect triggered for initiator:', {
         isInitiator,
         isConnected,
         callInfo,
+        isP2PReady,
+        isSFUReady,
       });
       
-      if (!hasAutoStartedRef.current) {
-        hasAutoStartedRef.current = true;
-        console.log('[CallScreen] Starting call as initiator from auto-start effect...');
-        console.log('[CallScreen] CallInfo for initiator:', {
-          conversationId: callInfo.conversationId,
-          callType: callInfo.callType,
-          livekitRoomName: callInfo.livekitRoomName
-        });
-        setTimeout(async () => {
-          if (callInfo.callType === 'sfu') {
-            // Với SFU, đợi token nếu chưa có
-            if (!liveKitToken) {
-              console.log('[CallScreen] Waiting for LiveKit token...');
-              // Đợi tối đa 5 giây cho token - check state mới mỗi lần
-              let attempts = 0;
-              let currentToken = liveKitToken;
-              while (!currentToken && attempts < 10) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                // Re-check token từ state (cần get từ closure hoặc ref)
-                attempts++;
-                // Note: Trong thực tế, token sẽ được set qua setLiveKitToken trong useEffect khác
-                // Nếu sau 5 giây vẫn chưa có, sẽ thử connect anyway
-              }
-              // Nếu vẫn chưa có token sau khi đợi, có thể token đang được fetch
-              // Thử connect với token hiện tại (có thể null, hook sẽ xử lý)
-            }
-            if (liveKitToken || callInfo.livekitRoomName) {
-              console.log('[CallScreen] Connecting to LiveKit...', { hasToken: !!liveKitToken });
-              try {
-                await connectLiveKit();
-              } catch (err) {
-                console.error('[CallScreen] Error connecting to LiveKit:', err);
-              }
-            } else {
-              console.error('[CallScreen] LiveKit token and room name not available');
-            }
-          } else if (callInfo.remoteUserId) {
-            // Use ref to call latest startCall without triggering re-runs
-            startCallRef.current().then(() => {
-              console.log('[CallScreen] ✅ Call started as initiator from auto-start effect');
-            }).catch(err => {
-              console.error('[CallScreen] ❌ Error starting call as initiator:', err);
+      hasAutoStartedRef.current = true;
+      console.log('[CallScreen] Starting call as initiator from auto-start effect...');
+      
+      // Delay slightly to ensure everything is set up
+      setTimeout(async () => {
+        if (isSFU) {
+          // SFU: connect to LiveKit
+          if (liveKitToken || callInfo.livekitRoomName) {
+            console.log('[CallScreen] Connecting to LiveKit...', { hasToken: !!liveKitToken });
+            try {
+              await connectLiveKit();
+            } catch (err) {
+              console.error('[CallScreen] Error connecting to LiveKit:', err);
               hasAutoStartedRef.current = false;
-            });
+            }
+          } else {
+            console.error('[CallScreen] LiveKit token and room name not available');
+            hasAutoStartedRef.current = false;
           }
-        }, 1000);
-      }
+        } else {
+          // P2P: start WebRTC call
+          console.log('[CallScreen] Starting P2P call with remoteUserId:', callInfo.remoteUserId);
+          startCallRef.current().then(() => {
+            console.log('[CallScreen] ✅ Call started as initiator from auto-start effect');
+          }).catch(err => {
+            console.error('[CallScreen] ❌ Error starting call as initiator:', err);
+            hasAutoStartedRef.current = false;
+          });
+        }
+      }, 500);
     }
     // Non-initiator: auto-start when accepted from modal
-    else if (acceptedFromModal && !isInitiator && !isConnected && callInfo && callInfo.conversationId) {
+    else if (acceptedFromModal && !isInitiator && callInfo && callInfo.conversationId && (isP2PReady || isSFUReady)) {
       console.log('[CallScreen] Auto-start effect triggered for non-initiator:', {
         acceptedFromModal,
         isInitiator,
         isConnected,
         callInfo,
+        isP2PReady,
+        isSFUReady,
       });
       
-      if (!hasAutoStartedRef.current) {
-        hasAutoStartedRef.current = true;
-        console.log('[CallScreen] Starting call from auto-start effect...');
-        setTimeout(async () => {
-          if (callInfo.callType === 'sfu') {
-            // Với SFU, đợi token nếu chưa có
-            if (!liveKitToken) {
-              console.log('[CallScreen] Waiting for LiveKit token...');
-              // Đợi tối đa 5 giây cho token - check state mới mỗi lần
-              let attempts = 0;
-              let currentToken = liveKitToken;
-              while (!currentToken && attempts < 10) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                // Re-check token từ state (cần get từ closure hoặc ref)
-                attempts++;
-                // Note: Trong thực tế, token sẽ được set qua setLiveKitToken trong useEffect khác
-                // Nếu sau 5 giây vẫn chưa có, sẽ thử connect anyway
-              }
-              // Nếu vẫn chưa có token sau khi đợi, có thể token đang được fetch
-              // Thử connect với token hiện tại (có thể null, hook sẽ xử lý)
-            }
-            if (liveKitToken || callInfo.livekitRoomName) {
-              console.log('[CallScreen] Connecting to LiveKit...', { hasToken: !!liveKitToken });
-              try {
-                await connectLiveKit();
-              } catch (err) {
-                console.error('[CallScreen] Error connecting to LiveKit:', err);
-              }
-            } else {
-              console.error('[CallScreen] LiveKit token and room name not available');
-            }
-          } else if (callInfo.remoteUserId) {
-            // Use ref to call latest startCall without triggering re-runs
-            startCallRef.current().then(() => {
-              console.log('[CallScreen] ✅ Call started from auto-start effect');
-            }).catch(err => {
-              console.error('[CallScreen] ❌ Error starting call from auto-start effect:', err);
+      hasAutoStartedRef.current = true;
+      console.log('[CallScreen] Starting call from auto-start effect...');
+      
+      setTimeout(async () => {
+        if (isSFU) {
+          // SFU: connect to LiveKit
+          if (liveKitToken || callInfo.livekitRoomName) {
+            console.log('[CallScreen] Connecting to LiveKit...', { hasToken: !!liveKitToken });
+            try {
+              await connectLiveKit();
+            } catch (err) {
+              console.error('[CallScreen] Error connecting to LiveKit:', err);
               hasAutoStartedRef.current = false;
-            });
+            }
+          } else {
+            console.error('[CallScreen] LiveKit token and room name not available');
+            hasAutoStartedRef.current = false;
           }
-        }, 1000);
-      }
+        } else {
+          // P2P: start WebRTC call
+          console.log('[CallScreen] Starting P2P call with remoteUserId:', callInfo.remoteUserId);
+          startCallRef.current().then(() => {
+            console.log('[CallScreen] ✅ Call started from auto-start effect');
+          }).catch(err => {
+            console.error('[CallScreen] ❌ Error starting call from auto-start effect:', err);
+            hasAutoStartedRef.current = false;
+          });
+        }
+      }, 500);
     }
-    // Remove startCall from deps to prevent re-triggering
   }, [acceptedFromModal, isInitiator, isConnected, callInfo, liveKitToken, connectLiveKit]);
 
   const handleAccept = async () => {

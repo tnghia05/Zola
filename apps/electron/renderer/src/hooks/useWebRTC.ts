@@ -152,6 +152,25 @@ interface UseWebRTCResult {
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun4.l.google.com:19302' },
+  // Free TURN servers from Open Relay Project
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
 ];
 
 export function useWebRTC({
@@ -192,6 +211,27 @@ export function useWebRTC({
   // Refs to store latest functions for use in socket handlers (will be set after functions are defined)
   const initPeerConnectionRef = useRef<(() => RTCPeerConnection) | null>(null);
   const getUserMediaRef = useRef<((video: boolean, audio: boolean) => Promise<MediaStream>) | null>(null);
+
+  // Sync socketRef with current socket - poll every 500ms until connected
+  useEffect(() => {
+    const syncSocket = () => {
+      const currentSocket = getSocket();
+      if (currentSocket && currentSocket.connected) {
+        socketRef.current = currentSocket;
+        console.log('[useWebRTC] Socket synced, connected:', currentSocket.id);
+      } else if (!socketRef.current || !socketRef.current.connected) {
+        socketRef.current = currentSocket;
+      }
+    };
+    
+    // Initial sync
+    syncSocket();
+    
+    // Poll for socket connection
+    const interval = setInterval(syncSocket, 500);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     currentFilterRef.current = currentFilter;

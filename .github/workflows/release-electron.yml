@@ -1,0 +1,42 @@
+name: Release Electron App
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-publish-electron:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build and publish Electron installer
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          pnpm --filter zola-electron run build:installer -- --publish always
+
+      - name: Upload Electron artifacts (fallback download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: zola-electron-dist
+          path: apps/electron/dist-electron/**
+
+

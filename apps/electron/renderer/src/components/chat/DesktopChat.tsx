@@ -6,6 +6,7 @@ import { MessageList } from './MessageList/MessageList';
 import { MessageComposer } from './MessageComposer/MessageComposer';
 import { TypingIndicator } from './TypingIndicator';
 import { ForwardMessageDialog } from './ForwardMessageDialog';
+import { DirectChatInfoPanel } from './DirectChatInfoPanel';
 import { useChatMessages } from '../../hooks/useChatMessages';
 import { useOpponentInfo } from '../../hooks/useOpponentInfo';
 import { useTypingStatus } from '../../hooks/useTypingStatus';
@@ -60,6 +61,7 @@ export function DesktopChat({
   const [composerText, setComposerText] = useState('');
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<ChatMessage | null>(null);
+  const [isInfoVisible, setIsInfoVisible] = useState(false);
 
   useEffect(() => {
     markConversationAsRead();
@@ -208,6 +210,8 @@ export function DesktopChat({
             statusDotColor={!isGroup && opponentInfo?.status === 'online' ? '#10B981' : undefined}
             onVideoCall={handleVideoCall}
             onAudioCall={handleAudioCall}
+            onToggleInfo={() => setIsInfoVisible(!isInfoVisible)}
+            isInfoVisible={isInfoVisible}
           />
         }
         messageArea={
@@ -277,6 +281,17 @@ export function DesktopChat({
             }}
             onSend={handleSend}
           />
+        }
+        rightPanel={
+          !isGroup && isInfoVisible ? (
+            <DirectChatInfoPanel
+              conversationId={conversationId}
+              opponentName={opponentInfo?.name}
+              opponentAvatar={opponentInfo?.avatar}
+              messages={messages}
+              onClose={() => setIsInfoVisible(false)}
+            />
+          ) : null
         }
       />
       <ForwardMessageDialog

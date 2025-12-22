@@ -1188,6 +1188,11 @@ export const respondFriendRequestApi = async (friendshipId: string, action: "acc
   return res.data;
 };
 
+export const getPendingFriendRequestsApi = async () => {
+  const res = await api.get<{ received: any[]; sent: any[] }>("/social/friends/requests/pending");
+  return res.data;
+};
+
 export const getNotificationsApi = async (cursor?: string, limit: number = 20) => {
   const params: any = { limit };
   if (cursor) params.cursor = cursor;

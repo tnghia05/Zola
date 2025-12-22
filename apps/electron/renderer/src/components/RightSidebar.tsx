@@ -3,11 +3,11 @@ import "../styles/feed.css";
 interface FriendSuggestion {
   user: {
     _id: string;
-    name: string;
+    name?: string;
     avatar?: string;
   };
   mutualCount: number;
-  mutualFriends: { name: string }[];
+  mutualFriends: { name?: string }[];
 }
 
 interface RightSidebarProps {

@@ -2,6 +2,7 @@
   "name": "zola",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@latest",
   "description": "Turborepo monorepo Zola (Expo, Next.js, Electron)",
   "scripts": {
     "dev": "turbo dev",

@@ -17,12 +17,6 @@
       "static/css/app/feed/page.css",
       "static/chunks/app/feed/page.js"
     ],
-    "/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/login/page.css",
-      "static/chunks/app/login/page.js"
-    ],
     "/conversations/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -34,6 +28,12 @@
       "static/chunks/main-app.js",
       "static/css/app/call/page.css",
       "static/chunks/app/call/page.js"
+    ],
+    "/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/login/page.css",
+      "static/chunks/app/login/page.js"
     ]
   }
 }

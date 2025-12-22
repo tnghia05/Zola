@@ -32,6 +32,14 @@ import {
   removeReactionApi,
 } from "../api";
 
+// Minimal fallback typing for story music metadata
+type StoryMusic = {
+  title?: string;
+  artist?: string;
+  url?: string;
+  thumbnail?: string;
+};
+
 export const useFeed = () => {
   const [items, setItems] = useState<Post[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);

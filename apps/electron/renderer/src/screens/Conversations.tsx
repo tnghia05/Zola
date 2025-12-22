@@ -115,6 +115,9 @@ export default function ConversationsScreen() {
       console.log('💬 Loading complete, loading state:', false);
     }
   };
+  const handleFeed = () => {
+    navigate('/feed');
+  };
 
   const handleLogout = async () => {
     try {
@@ -338,7 +341,8 @@ export default function ConversationsScreen() {
           <button
       className="header-button"
       title="Mạng xã hội Day2"
-      onClick={() => navigate('/social')}
+      onClick={handleFeed}
+
     >
       📰
     </button>
@@ -449,39 +453,7 @@ export default function ConversationsScreen() {
         )}
       </div>
 
-      {/* Right Panel - Chat Info (can be toggled) */}
-      {selectedConversation && (
-        <div className="chat-info-panel">
-          {selectedConversation.isGroup ? (
-            <GroupInfoPanel
-              conversation={selectedConversation}
-              currentUserId={localStorage.getItem('user_id') || ''}
-              onAddMembers={() => setIsAddMembersOpen(true)}
-              onRemoveMember={(userId) => setMemberAction({ type: 'remove', userId })}
-              onLeaveGroup={() => setConfirmLeaveOpen(true)}
-              onMakeAdmin={(userId) => setMemberAction({ type: 'makeAdmin', userId })}
-              onRemoveAdmin={(userId) => setMemberAction({ type: 'removeAdmin', userId })}
-              onChangeInfo={() => setIsUpdateGroupOpen(true)}
-              onGenerateInvite={handleGenerateInvite}
-              inviteLink={inviteLink ?? undefined}
-              isGeneratingInvite={inviteGenerating}
-            />
-          ) : (
-            <div className="chat-info-header">
-              <div className="chat-info-avatar">
-                {selectedConversation.opponent?.avatar ? (
-                  <img src={selectedConversation.opponent.avatar} alt="" className="chat-info-avatar-img" />
-                ) : (
-                  getInitials(selectedConversation.title || selectedConversation.opponent?.name || 'U')
-                )}
-              </div>
-              <div className="chat-info-name">
-                {selectedConversation.title || selectedConversation.opponent?.name || 'Người dùng'}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Right Panel is now handled inside DesktopChat component */}
       <NewConversationModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

@@ -1,0 +1,34 @@
+import React from 'react';
+interface IconProps {
+    size?: number;
+    className?: string;
+    color?: string;
+}
+export declare const HomeIcon: React.FC<IconProps>;
+export declare const FriendsIcon: React.FC<IconProps>;
+export declare const MessengerIcon: React.FC<IconProps>;
+export declare const NotificationsIcon: React.FC<IconProps>;
+export declare const SavedIcon: React.FC<IconProps>;
+export declare const VideoIcon: React.FC<IconProps>;
+export declare const SettingsIcon: React.FC<IconProps>;
+export declare const GroupsIcon: React.FC<IconProps>;
+export declare const MarketplaceIcon: React.FC<IconProps>;
+export declare const SearchIcon: React.FC<IconProps>;
+export declare const MediaPhotoIcon: React.FC<IconProps>;
+export declare const CommentIcon: React.FC<IconProps>;
+export declare const PlayButtonIcon: React.FC<IconProps>;
+export declare const BellIcon: React.FC<IconProps>;
+export declare const BookmarkIcon: React.FC<IconProps>;
+export declare const CameraIcon: React.FC<IconProps>;
+export declare const ReelIcon: React.FC<IconProps>;
+export declare const GlobeIcon: React.FC<IconProps>;
+export declare const LockIcon: React.FC<IconProps>;
+export declare const ProfileIcon: React.FC<IconProps>;
+export declare const MediaIcon: React.FC<IconProps>;
+export declare const MicIcon: React.FC<IconProps>;
+export declare const FolderIcon: React.FC<IconProps>;
+export declare const FileIcon: React.FC<IconProps>;
+export declare const PaletteIcon: React.FC<IconProps>;
+export declare const ThumbsUpIcon: React.FC<IconProps>;
+export declare const EditTextIcon: React.FC<IconProps>;
+export {};

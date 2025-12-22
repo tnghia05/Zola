@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosRequestHeaders } from 'axios';
 
 // For Electron, always use direct backend URL
 const DIRECT_BACKEND_URL = 'https://backend36.dev';
@@ -39,13 +39,27 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Add request interceptor for debugging
+// Add request interceptor for auth + debugging
 api.interceptors.request.use(
   (config) => {
+    // Always try to attach latest token from localStorage
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        if (!config.headers) {
+          config.headers = {} as AxiosRequestHeaders;
+        }
+        (config.headers as AxiosRequestHeaders).Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('❌ Error reading auth_token from localStorage:', error);
+    }
+
     console.log('🔍 API Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
       baseURL: config.baseURL,
+      hasAuthHeader: !!(config.headers as any)?.Authorization,
     });
     return config;
   },

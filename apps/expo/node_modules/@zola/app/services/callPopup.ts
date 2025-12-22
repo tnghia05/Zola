@@ -6,6 +6,16 @@ export class CallPopupManager {
     this.callUrl = typeof window !== 'undefined' ? `${window.location.origin}/call` : '';
   }
 
+  private isElectron(): boolean {
+    if (typeof window === 'undefined') return false;
+    return !!(
+      (window as any).electronAPI ||
+      window.location.hash.includes('#/') ||
+      window.location.href.includes('/#/') ||
+      navigator.userAgent.toLowerCase().includes('electron')
+    );
+  }
+
   openCallWindow(
     callId: string,
     conversationId: string,
@@ -18,6 +28,15 @@ export class CallPopupManager {
       return null;
     }
 
+    // Detect Electron và dùng hash navigation
+    if (this.isElectron()) {
+      const target = `#/call/${callId}`;
+      console.log('📞 [CALLPOPUP] Electron detected, navigating via hash:', target);
+      window.location.hash = target;
+      return window;
+    }
+
+    // Web: dùng query params
     const callParams = new URLSearchParams({
       callId,
       conversationId,

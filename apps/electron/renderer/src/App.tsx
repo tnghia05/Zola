@@ -4,19 +4,28 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { joinConversationByInvite, setAuthToken } from './api';
 import type { Conversation } from './api';
 import { connectSocket } from './socket';
-import Login from './screens/Login';
-import Register from './screens/Register';
-import OTPVerification from './screens/OTPVerification';
-import Conversations from './screens/Conversations';
+// Use shared components from @zola/app (only those compatible with HashRouter)
+import Login from '@zola/app/features/auth/Login.web';
+import Register from '@zola/app/features/auth/Register.web';
+import OTPVerification from '@zola/app/features/auth/OTPVerification.web';
 import Feed from './screens/Feed';
-import Profile from './screens/Profile';
-import Friends from './screens/Friends';
-import Settings from './screens/Settings';
+import Conversations from './screens/Conversations';
 import Chat from './screens/Chat';
+import Friends from '@zola/app/features/friends/Friends.web';
+import Search from '@zola/app/features/search/Search.web';
+import Settings from '@zola/app/features/settings/Settings.web';
+import HashtagScreen from '@zola/app/features/hashtag/Hashtag.web';
+
+// Use local CallScreen (compatible with HashRouter)
 import CallScreen from './screens/CallScreen';
-import Search from './screens/Search';
+
+// Local screens
+import Profile from './screens/Profile';
 import SavedPosts from './screens/SavedPosts';
-import { IncomingCallModal } from './components/IncomingCallModal';
+import Reels from './screens/Reels';
+import PostDetail from './screens/PostDetail';
+import { IncomingCallModal as GlobalIncomingCall } from './components/IncomingCallModal';
+import '@zola/app/styles/floating-chat.css';
 import './styles/index.css';
 
 export default function App() {
@@ -129,6 +138,9 @@ export default function App() {
             <>
               <Route path="/" element={<Feed />} />
               <Route path="/feed" element={<Feed />} />
+              <Route path="/reels" element={<Reels />} />
+              <Route path="/hashtag/:tag" element={<HashtagScreen />} />
+              <Route path="/post/:postId" element={<PostDetail />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:userId" element={<Profile />} />
               <Route path="/friends" element={<Friends />} />
@@ -150,7 +162,7 @@ export default function App() {
             </>
           )}
         </Routes>
-        {isLoggedIn && <IncomingCallModal />}
+        {isLoggedIn && <GlobalIncomingCall />}
       </HashRouter>
     </ThemeProvider>
   );
