@@ -20,16 +20,13 @@ import {
   updateGroupInfo,
   createInviteLink,
 } from '../api';
-import packageJson from '../../package.json';
-
-const APP_VERSION = packageJson.version || '1.0.0';
-
 export default function ConversationsScreen() {
   console.log('💬 ConversationsScreen component rendering...');
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [appVersion, setAppVersion] = useState<string>('0.0.0');
   const [searchText, setSearchText] = useState('');
   const [selectedTab, setSelectedTab] = useState('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -39,6 +36,17 @@ export default function ConversationsScreen() {
   const [memberAction, setMemberAction] = useState<{ type: 'remove' | 'makeAdmin' | 'removeAdmin'; userId: string } | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteGenerating, setInviteGenerating] = useState(false);
+
+  useEffect(() => {
+    // Get app version from Electron API
+    if (window.electronAPI?.getAppVersion) {
+      window.electronAPI.getAppVersion().then((version) => {
+        setAppVersion(version);
+      }).catch((error) => {
+        console.error('Error getting app version:', error);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     console.log('💬 ConversationsScreen useEffect - loading conversations...');
@@ -335,7 +343,7 @@ export default function ConversationsScreen() {
         <div className="desktop-header">
           <h1 className="desktop-header-title">
             Day2
-            <span className="desktop-header-version">v{APP_VERSION}</span>
+            <span className="desktop-header-version">v{appVersion}</span>
           </h1>
           <div className="desktop-header-actions">
           <button
