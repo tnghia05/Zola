@@ -226,11 +226,21 @@ export default function CallScreen() {
       // Nếu là cuộc gọi nhóm, lấy LiveKit token
       if (locationState.callType === 'sfu' && locationState.livekitRoomName && callId) {
         getLiveKitToken(callId).then(tokenData => {
+          console.log('[CallScreen] LiveKit token response:', {
+            hasToken: !!tokenData.token,
+            hasUrl: !!tokenData.url,
+            url: tokenData.url,
+            roomName: tokenData.roomName
+          });
           setLiveKitToken(tokenData.token);
           const normalizedUrl = normalizeLiveKitUrl(tokenData.url);
+          console.log('[CallScreen] Normalized URL:', normalizedUrl);
           setLiveKitUrl(normalizedUrl);
           if (!normalizedUrl) {
             console.error('[CallScreen] LiveKit URL is invalid or empty. Please check LIVEKIT_URL on backend.');
+            console.error('[CallScreen] Raw URL from backend:', tokenData.url);
+          } else {
+            console.log('[CallScreen] ✅ LiveKit URL set successfully:', normalizedUrl);
           }
           console.log('[CallScreen] LiveKit token obtained from location state');
         }).catch(err => {
@@ -274,11 +284,21 @@ export default function CallScreen() {
         if (callType === 'sfu' && call.metadata?.livekitRoomName) {
           try {
             const tokenData = await getLiveKitToken(callId);
+            console.log('[CallScreen] LiveKit token response:', {
+              hasToken: !!tokenData.token,
+              hasUrl: !!tokenData.url,
+              url: tokenData.url,
+              roomName: tokenData.roomName
+            });
             setLiveKitToken(tokenData.token);
             const normalizedUrl = normalizeLiveKitUrl(tokenData.url);
+            console.log('[CallScreen] Normalized URL:', normalizedUrl);
             setLiveKitUrl(normalizedUrl);
             if (!normalizedUrl) {
               console.error('[CallScreen] LiveKit URL is invalid or empty. Please check LIVEKIT_URL on backend.');
+              console.error('[CallScreen] Raw URL from backend:', tokenData.url);
+            } else {
+              console.log('[CallScreen] ✅ LiveKit URL set successfully:', normalizedUrl);
             }
             console.log('[CallScreen] LiveKit token obtained');
           } catch (err) {
@@ -357,11 +377,22 @@ export default function CallScreen() {
         if (data.callType === 'sfu' && data.livekitRoomName) {
           try {
             const tokenData = await getLiveKitToken(callId);
+            console.log('[CallScreen] LiveKit token response (from incoming call):', {
+              hasToken: !!tokenData.token,
+              hasUrl: !!tokenData.url,
+              url: tokenData.url,
+              roomName: tokenData.roomName,
+              fullResponse: tokenData
+            });
             setLiveKitToken(tokenData.token);
             const normalizedUrl = normalizeLiveKitUrl(tokenData.url);
+            console.log('[CallScreen] Normalized URL (from incoming call):', normalizedUrl);
             setLiveKitUrl(normalizedUrl);
             if (!normalizedUrl) {
               console.error('[CallScreen] LiveKit URL is invalid or empty. Please check LIVEKIT_URL on backend.');
+              console.error('[CallScreen] Raw URL from backend:', tokenData.url);
+            } else {
+              console.log('[CallScreen] ✅ LiveKit URL set successfully (from incoming call):', normalizedUrl);
             }
             console.log('[CallScreen] LiveKit token obtained from incoming call');
           } catch (err) {
@@ -503,8 +534,18 @@ export default function CallScreen() {
       setTimeout(async () => {
         if (isSFU) {
           // SFU: connect to LiveKit
-          if (liveKitToken || callInfo.livekitRoomName) {
-            console.log('[CallScreen] Connecting to LiveKit...', { hasToken: !!liveKitToken });
+          console.log('[CallScreen] Checking LiveKit readiness:', {
+            hasToken: !!liveKitToken,
+            hasUrl: !!liveKitUrl,
+            url: liveKitUrl,
+            hasRoomName: !!callInfo.livekitRoomName
+          });
+          if (liveKitToken && liveKitUrl && callInfo.livekitRoomName) {
+            console.log('[CallScreen] Connecting to LiveKit...', { 
+              hasToken: !!liveKitToken,
+              hasUrl: !!liveKitUrl,
+              url: liveKitUrl
+            });
             try {
               await connectLiveKit();
             } catch (err) {
@@ -512,7 +553,11 @@ export default function CallScreen() {
               hasAutoStartedRef.current = false;
             }
           } else {
-            console.error('[CallScreen] LiveKit token and room name not available');
+            console.error('[CallScreen] LiveKit not ready:', {
+              missingToken: !liveKitToken,
+              missingUrl: !liveKitUrl,
+              missingRoomName: !callInfo.livekitRoomName
+            });
             hasAutoStartedRef.current = false;
           }
         } else {
@@ -544,8 +589,18 @@ export default function CallScreen() {
       setTimeout(async () => {
         if (isSFU) {
           // SFU: connect to LiveKit
-          if (liveKitToken || callInfo.livekitRoomName) {
-            console.log('[CallScreen] Connecting to LiveKit...', { hasToken: !!liveKitToken });
+          console.log('[CallScreen] Checking LiveKit readiness (non-initiator):', {
+            hasToken: !!liveKitToken,
+            hasUrl: !!liveKitUrl,
+            url: liveKitUrl,
+            hasRoomName: !!callInfo.livekitRoomName
+          });
+          if (liveKitToken && liveKitUrl && callInfo.livekitRoomName) {
+            console.log('[CallScreen] Connecting to LiveKit (non-initiator)...', { 
+              hasToken: !!liveKitToken,
+              hasUrl: !!liveKitUrl,
+              url: liveKitUrl
+            });
             try {
               await connectLiveKit();
             } catch (err) {
@@ -553,7 +608,11 @@ export default function CallScreen() {
               hasAutoStartedRef.current = false;
             }
           } else {
-            console.error('[CallScreen] LiveKit token and room name not available');
+            console.error('[CallScreen] LiveKit not ready (non-initiator):', {
+              missingToken: !liveKitToken,
+              missingUrl: !liveKitUrl,
+              missingRoomName: !callInfo.livekitRoomName
+            });
             hasAutoStartedRef.current = false;
           }
         } else {
@@ -568,7 +627,7 @@ export default function CallScreen() {
         }
       }, 500);
     }
-  }, [acceptedFromModal, isInitiator, isConnected, callInfo, liveKitToken, connectLiveKit]);
+  }, [acceptedFromModal, isInitiator, isConnected, callInfo, liveKitToken, liveKitUrl, connectLiveKit]);
 
   const handleAccept = async () => {
     if (!callId) return;

@@ -1096,7 +1096,16 @@ export const initiateCall = async (conversationId: string, type: 'video' | 'audi
 };
 
 export const getLiveKitToken = async (callId: string) => {
+  console.log('[API] Requesting LiveKit token for callId:', callId);
   const res = await api.post<{ success: boolean; token: string; roomName: string; url: string }>(`/calls/${callId}/livekit-token`);
+  console.log('[API] LiveKit token response:', {
+    success: res.data.success,
+    hasToken: !!res.data.token,
+    hasUrl: !!res.data.url,
+    url: res.data.url,
+    roomName: res.data.roomName,
+    fullData: res.data
+  });
   return res.data;
 };
 
