@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
+const REPO_ROOT = path.join(__dirname, '../..');
 const pkgJsonPath = path.join(PROJECT_ROOT, 'package.json');
 
 // Lấy type từ command line: patch, minor, major (mặc định là patch)
@@ -43,14 +44,16 @@ console.log(`🔢 Version tăng từ ${oldVersion} ➜ ${newVersion}`);
 
 // Commit version mới
 const tagName = `v${newVersion}`;
+const relativePkgPath = path.relative(REPO_ROOT, pkgJsonPath).replace(/\\/g, '/');
+
 try {
-  execSync('git add apps/electron/package.json', { stdio: 'inherit', cwd: path.join(__dirname, '../..') });
-  execSync(`git commit -m "chore: bump version to ${newVersion}"`, { stdio: 'inherit', cwd: path.join(__dirname, '../..') });
-  execSync(`git push origin main`, { stdio: 'inherit', cwd: path.join(__dirname, '../..') });
+  execSync(`git add ${relativePkgPath}`, { stdio: 'inherit', cwd: REPO_ROOT });
+  execSync(`git commit -m "chore: bump version to ${newVersion}"`, { stdio: 'inherit', cwd: REPO_ROOT });
+  execSync(`git push origin main`, { stdio: 'inherit', cwd: REPO_ROOT });
   
   // Tạo tag và push
-  execSync(`git tag ${tagName}`, { stdio: 'inherit', cwd: path.join(__dirname, '../..') });
-  execSync(`git push origin ${tagName}`, { stdio: 'inherit', cwd: path.join(__dirname, '../..') });
+  execSync(`git tag ${tagName}`, { stdio: 'inherit', cwd: REPO_ROOT });
+  execSync(`git push origin ${tagName}`, { stdio: 'inherit', cwd: REPO_ROOT });
   
   console.log(`✅ Đã tạo release ${tagName} và push lên GitHub!`);
   console.log(`🚀 GitHub Actions sẽ tự động build và publish file .exe`);
