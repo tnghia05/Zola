@@ -10,6 +10,10 @@
     "build:electron": "pnpm build && node scripts/build-with-env.js",
     "build:installer": "pnpm build && electron-builder --win nsis",
     "build:portable": "pnpm build && electron-builder --win portable",
+    "release": "node scripts/release.js",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major",
     "lint": "echo \"Electron lint TODO\""
   },
   "dependencies": {
