@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useWebRTC, FilterType } from '../hooks/useWebRTC';
 import { useLiveKit } from '../hooks/useLiveKit';
@@ -88,6 +88,44 @@ export default function CallScreen() {
   // LiveKit state
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
   const [liveKitUrl, setLiveKitUrl] = useState<string>('');
+  
+  // Refs to track latest values for use in closures
+  const liveKitTokenRef = useRef<string | null>(null);
+  const liveKitUrlRef = useRef<string>('');
+  
+  useEffect(() => {
+    liveKitTokenRef.current = liveKitToken;
+  }, [liveKitToken]);
+  
+  useEffect(() => {
+    liveKitUrlRef.current = liveKitUrl;
+  }, [liveKitUrl]);
+
+  // Helper function to wait for LiveKit token/URL to be ready
+  const waitForLiveKitReady = useCallback(async (
+    roomName: string | undefined,
+    maxRetries = 10,
+    delay = 500
+  ): Promise<boolean> => {
+    for (let i = 0; i < maxRetries; i++) {
+      // Use refs to get latest values (avoid closure issues)
+      const currentToken = liveKitTokenRef.current;
+      const currentUrl = liveKitUrlRef.current;
+      if (currentToken && currentUrl && roomName) {
+        console.log(`[CallScreen] ✅ LiveKit ready after ${i + 1} attempts`);
+        return true;
+      }
+      console.log(`[CallScreen] Waiting for LiveKit token/URL (attempt ${i + 1}/${maxRetries})...`, {
+        hasToken: !!currentToken,
+        hasUrl: !!currentUrl,
+        url: currentUrl,
+        hasRoomName: !!roomName
+      });
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    console.error('[CallScreen] ❌ LiveKit not ready after max retries');
+    return false;
+  }, []);
 
   // Chỉ sử dụng useWebRTC cho P2P calls
   const isP2PCall = !callInfo?.callType || callInfo.callType === 'p2p';
@@ -501,6 +539,44 @@ export default function CallScreen() {
     }
   }, [callId, localUserId]);
   
+  // Fetch LiveKit token/URL whenever callInfo changes for SFU calls
+  useEffect(() => {
+    if (!callId || !callInfo) return;
+    
+    const isSFU = callInfo.callType === 'sfu';
+    const hasRoomName = !!callInfo.livekitRoomName;
+    const needsToken = isSFU && hasRoomName && (!liveKitToken || !liveKitUrl);
+    
+    if (needsToken) {
+      console.log('[CallScreen] Fetching LiveKit token for SFU call:', {
+        callId,
+        callType: callInfo.callType,
+        hasRoomName,
+        hasToken: !!liveKitToken,
+        hasUrl: !!liveKitUrl
+      });
+      
+      getLiveKitToken(callId).then(tokenData => {
+        console.log('[CallScreen] LiveKit token fetched (useEffect):', {
+          hasToken: !!tokenData.token,
+          hasUrl: !!tokenData.url,
+          url: tokenData.url
+        });
+        setLiveKitToken(tokenData.token);
+        const normalizedUrl = normalizeLiveKitUrl(tokenData.url);
+        console.log('[CallScreen] Normalized URL (useEffect):', normalizedUrl);
+        setLiveKitUrl(normalizedUrl);
+        if (!normalizedUrl) {
+          console.error('[CallScreen] LiveKit URL is invalid or empty (useEffect)');
+        } else {
+          console.log('[CallScreen] ✅ LiveKit URL set successfully (useEffect):', normalizedUrl);
+        }
+      }).catch(err => {
+        console.error('[CallScreen] Error fetching LiveKit token (useEffect):', err);
+      });
+    }
+  }, [callId, callInfo?.callType, callInfo?.livekitRoomName, liveKitToken, liveKitUrl]);
+  
   // Reset auto-start flag when call connects
   useEffect(() => {
     if (isConnected) {
@@ -535,16 +611,24 @@ export default function CallScreen() {
         if (isSFU) {
           // SFU: connect to LiveKit
           console.log('[CallScreen] Checking LiveKit readiness:', {
-            hasToken: !!liveKitToken,
-            hasUrl: !!liveKitUrl,
-            url: liveKitUrl,
+            hasToken: !!liveKitTokenRef.current,
+            hasUrl: !!liveKitUrlRef.current,
+            url: liveKitUrlRef.current,
             hasRoomName: !!callInfo.livekitRoomName
           });
-          if (liveKitToken && liveKitUrl && callInfo.livekitRoomName) {
+          
+          // Wait for token/URL to be ready
+          const isReady = await waitForLiveKitReady(callInfo.livekitRoomName);
+          
+          // Get latest values from refs
+          const currentToken = liveKitTokenRef.current;
+          const currentUrl = liveKitUrlRef.current;
+          
+          if (isReady && currentToken && currentUrl && callInfo.livekitRoomName) {
             console.log('[CallScreen] Connecting to LiveKit...', { 
-              hasToken: !!liveKitToken,
-              hasUrl: !!liveKitUrl,
-              url: liveKitUrl
+              hasToken: !!currentToken,
+              hasUrl: !!currentUrl,
+              url: currentUrl
             });
             try {
               await connectLiveKit();
@@ -553,9 +637,9 @@ export default function CallScreen() {
               hasAutoStartedRef.current = false;
             }
           } else {
-            console.error('[CallScreen] LiveKit not ready:', {
-              missingToken: !liveKitToken,
-              missingUrl: !liveKitUrl,
+            console.error('[CallScreen] LiveKit not ready after waiting:', {
+              missingToken: !currentToken,
+              missingUrl: !currentUrl,
               missingRoomName: !callInfo.livekitRoomName
             });
             hasAutoStartedRef.current = false;
@@ -586,6 +670,22 @@ export default function CallScreen() {
       hasAutoStartedRef.current = true;
       console.log('[CallScreen] Starting call from auto-start effect...');
       
+      // Wait for token/URL to be ready (with retry)
+      const waitForLiveKitReady = async (maxRetries = 10, delay = 500) => {
+        for (let i = 0; i < maxRetries; i++) {
+          if (liveKitToken && liveKitUrl && callInfo.livekitRoomName) {
+            return true;
+          }
+          console.log(`[CallScreen] Waiting for LiveKit token/URL (attempt ${i + 1}/${maxRetries})...`, {
+            hasToken: !!liveKitToken,
+            hasUrl: !!liveKitUrl,
+            url: liveKitUrl
+          });
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        return false;
+      };
+      
       setTimeout(async () => {
         if (isSFU) {
           // SFU: connect to LiveKit
@@ -595,11 +695,19 @@ export default function CallScreen() {
             url: liveKitUrl,
             hasRoomName: !!callInfo.livekitRoomName
           });
-          if (liveKitToken && liveKitUrl && callInfo.livekitRoomName) {
+          
+          // Wait for token/URL to be ready
+          const isReady = await waitForLiveKitReady(callInfo.livekitRoomName);
+          
+          // Get latest values from refs
+          const currentToken = liveKitTokenRef.current;
+          const currentUrl = liveKitUrlRef.current;
+          
+          if (isReady && currentToken && currentUrl && callInfo.livekitRoomName) {
             console.log('[CallScreen] Connecting to LiveKit (non-initiator)...', { 
-              hasToken: !!liveKitToken,
-              hasUrl: !!liveKitUrl,
-              url: liveKitUrl
+              hasToken: !!currentToken,
+              hasUrl: !!currentUrl,
+              url: currentUrl
             });
             try {
               await connectLiveKit();
@@ -608,9 +716,9 @@ export default function CallScreen() {
               hasAutoStartedRef.current = false;
             }
           } else {
-            console.error('[CallScreen] LiveKit not ready (non-initiator):', {
-              missingToken: !liveKitToken,
-              missingUrl: !liveKitUrl,
+            console.error('[CallScreen] LiveKit not ready (non-initiator) after waiting:', {
+              missingToken: !currentToken,
+              missingUrl: !currentUrl,
               missingRoomName: !callInfo.livekitRoomName
             });
             hasAutoStartedRef.current = false;
@@ -627,7 +735,7 @@ export default function CallScreen() {
         }
       }, 500);
     }
-  }, [acceptedFromModal, isInitiator, isConnected, callInfo, liveKitToken, liveKitUrl, connectLiveKit]);
+  }, [acceptedFromModal, isInitiator, isConnected, callInfo, liveKitToken, liveKitUrl, connectLiveKit, waitForLiveKitReady]);
 
   const handleAccept = async () => {
     if (!callId) return;
