@@ -44,13 +44,9 @@ export function MediaTest() {
         return;
       }
 
-      // First, request permission to get device labels (they'll be empty without permission)
-      try {
-        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        addLog('✅ Permission granted, device labels will be available');
-      } catch (err) {
-        addLog('⚠️ Permission not granted, device labels may be empty');
-      }
+      // Don't auto-request permission - let the user click the test buttons
+      // This prevents the camera from being held when just loading the page
+      addLog('ℹ️ Click a test button to request permissions and get device labels');
 
       const devices = await navigator.mediaDevices.enumerateDevices();
       addLog(`Found ${devices.length} devices total`);

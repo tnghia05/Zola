@@ -544,7 +544,14 @@ export function useWebRTC({
     console.log(`[getUserMedia] Constraints:`, JSON.stringify(constraints, null, 2));
 
     try {
+      // Final check: ensure no getUserMedia is already pending
+      // This prevents multiple simultaneous requests
       console.log(`[getUserMedia] Calling navigator.mediaDevices.getUserMedia...`);
+      console.log(`[getUserMedia] Constraints:`, JSON.stringify(constraints, null, 2));
+      
+      // Add a small delay to ensure any previous requests are fully cleared
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       console.log(`[getUserMedia] ✅ Success! Stream obtained`);
@@ -707,12 +714,169 @@ export function useWebRTC({
         throw new Error('Socket not connected');
       }
 
+      // Cleanup any existing streams before starting new call
+      console.log('[startCall] Cleaning up existing streams...');
+      
+      // List all active tracks before cleanup
+      const activeTracksBefore: MediaStreamTrack[] = [];
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        console.log('[startCall] Available devices:', devices.length);
+      } catch (e) {
+        console.warn('[startCall] Could not enumerate devices:', e);
+      }
+      
+      const existingCameraStream = rawCameraStreamRef.current;
+      if (existingCameraStream) {
+        console.log('[startCall] Stopping existing camera stream');
+        existingCameraStream.getTracks().forEach((track: MediaStreamTrack) => {
+          if (track.readyState === 'live') {
+            console.log(`[startCall] Stopping active ${track.kind} track:`, track.id);
+            track.stop();
+          }
+        });
+        rawCameraStreamRef.current = null;
+      }
+      
+      const existingLocalStream = localStream;
+      if (existingLocalStream) {
+        console.log('[startCall] Stopping existing local stream');
+        existingLocalStream.getTracks().forEach((track: MediaStreamTrack) => {
+          if (track.readyState === 'live') {
+            console.log(`[startCall] Stopping active ${track.kind} track from local stream:`, track.id);
+            track.stop();
+          }
+        });
+        setLocalStream(null);
+      }
+      
+      // Also check screen share stream
+      if (screenShareStreamRef.current) {
+        console.log('[startCall] Stopping existing screen share stream');
+        screenShareStreamRef.current.getTracks().forEach((track: MediaStreamTrack) => {
+          if (track.readyState === 'live') {
+            console.log(`[startCall] Stopping active ${track.kind} track from screen share:`, track.id);
+            track.stop();
+          }
+        });
+        screenShareStreamRef.current = null;
+      }
+      
+      // Step 2: Try to stop ALL tracks from any video/audio elements in the page
+      // This catches tracks that might be attached to DOM elements
+      try {
+        console.log('[startCall] Checking for tracks in media elements...');
+        const videoElements = document.querySelectorAll('video');
+        const audioElements = document.querySelectorAll('audio');
+        let foundTracks = 0;
+        
+        [...videoElements, ...audioElements].forEach((element: HTMLVideoElement | HTMLAudioElement) => {
+          if (element.srcObject instanceof MediaStream) {
+            const stream = element.srcObject;
+            stream.getTracks().forEach((track: MediaStreamTrack) => {
+              if (track.readyState === 'live') {
+                console.log(`[startCall] Found active ${track.kind} track on media element:`, track.id);
+                track.stop();
+                foundTracks++;
+              }
+            });
+            // Clear srcObject to release the stream
+            element.srcObject = null;
+          }
+        });
+        
+        if (foundTracks > 0) {
+          console.log(`[startCall] Stopped ${foundTracks} tracks from media elements`);
+        }
+      } catch (e) {
+        console.warn('[startCall] Error checking media elements:', e);
+      }
+      
+      // Step 3: Wait longer to ensure tracks are fully released by OS/browser
+      console.log('[startCall] Waiting for tracks to be released by OS...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Initialize peer connection
       const pc = initPeerConnection();
 
       // Get user media (both initiator and non-initiator need this)
       console.log('[startCall] Requesting user media...');
-      await getUserMedia(isVideoEnabled, isAudioEnabled);
+      
+      // Retry logic for NotReadableError (device busy)
+      let retries = 3;
+      let lastError: any = null;
+      let attempt = 0;
+      let gotMedia = false;
+      let currentVideoEnabled = isVideoEnabled;
+      let currentAudioEnabled = isAudioEnabled;
+      
+      while (retries > 0 && !gotMedia) {
+        attempt++;
+        try {
+          console.log(`[startCall] Attempt ${attempt} to get user media (video: ${currentVideoEnabled}, audio: ${currentAudioEnabled})...`);
+          await getUserMedia(currentVideoEnabled, currentAudioEnabled);
+          console.log(`[startCall] ✅ Successfully got user media on attempt ${attempt}`);
+          gotMedia = true;
+        } catch (err: any) {
+          lastError = err;
+          console.error(`[startCall] Attempt ${attempt} failed:`, err.name, err.message);
+          
+          if (err.name === 'NotReadableError') {
+            // Try fallback: if video failed, try audio only
+            if (currentVideoEnabled && currentAudioEnabled) {
+              console.warn('[startCall] Video + Audio failed, trying audio only...');
+              currentVideoEnabled = false;
+              retries = 2; // Reset retries for audio-only attempt
+              attempt = 0;
+              continue;
+            } else if (!currentVideoEnabled && currentAudioEnabled) {
+              console.warn('[startCall] Audio only also failed, trying video only...');
+              currentVideoEnabled = isVideoEnabled;
+              currentAudioEnabled = false;
+              retries = 2;
+              attempt = 0;
+              continue;
+            }
+            
+            const waitTime = 500 * attempt;
+            console.warn(`[startCall] Device busy, retrying in ${waitTime}ms... (${retries - 1} retries left)`);
+            
+            // Aggressive cleanup before retry
+            const streamToCleanup = rawCameraStreamRef.current;
+            if (streamToCleanup) {
+              streamToCleanup.getTracks().forEach((track: MediaStreamTrack) => {
+                track.stop();
+              });
+              rawCameraStreamRef.current = null;
+            }
+            
+            // Also cleanup from media elements again
+            try {
+              const videoElements = document.querySelectorAll('video');
+              const audioElements = document.querySelectorAll('audio');
+              [...videoElements, ...audioElements].forEach((element: HTMLVideoElement | HTMLAudioElement) => {
+                if (element.srcObject instanceof MediaStream) {
+                  element.srcObject.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+                  element.srcObject = null;
+                }
+              });
+            } catch (e) {
+              // Ignore errors
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            retries--;
+          } else {
+            // For other errors, don't retry
+            throw err;
+          }
+        }
+      }
+      
+      if (!gotMedia && lastError) {
+        console.error('[startCall] ❌ Failed to get user media after all retries and fallbacks');
+        throw lastError;
+      }
 
       if (isInitiator) {
         // Initiator: Create and send offer

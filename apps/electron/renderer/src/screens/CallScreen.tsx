@@ -53,9 +53,6 @@ export default function CallScreen() {
   // Log component lifecycle
   useEffect(() => {
     console.log('[CallScreen] Component mounted, callId:', callId);
-    return () => {
-      console.log('[CallScreen] Component unmounting, callId:', callId);
-    };
   }, [callId]);
   
   // Get call info from navigation state (if available)
@@ -189,6 +186,50 @@ export default function CallScreen() {
   const localStream = isP2PCall ? p2pLocalStream : liveKitLocalStream;
   const remoteStream = isP2PCall ? p2pRemoteStream : null;
   const isConnected = isP2PCall ? p2pIsConnected : liveKitIsConnected;
+  
+  // Cleanup on unmount - ensure all media tracks are released
+  useEffect(() => {
+    return () => {
+      console.log('[CallScreen] Component unmounting, cleaning up all media tracks...');
+      
+      // Cleanup all active tracks
+      const allTracks: MediaStreamTrack[] = [];
+      
+      // Check P2P local stream
+      if (p2pLocalStream) {
+        p2pLocalStream.getTracks().forEach(track => {
+          if (track.readyState === 'live') {
+            allTracks.push(track);
+          }
+        });
+      }
+      
+      // Check LiveKit local stream
+      if (liveKitLocalStream) {
+        liveKitLocalStream.getTracks().forEach(track => {
+          if (track.readyState === 'live') {
+            allTracks.push(track);
+          }
+        });
+      }
+      
+      // Stop all active tracks
+      allTracks.forEach(track => {
+        console.log(`[CallScreen] Stopping ${track.kind} track on unmount:`, track.id);
+        track.stop();
+      });
+      
+      // End call if still active
+      if (isConnected || p2pIsConnected || liveKitIsConnected) {
+        console.log('[CallScreen] Ending call on unmount...');
+        if (isP2PCall) {
+          endWebRTC();
+        } else {
+          disconnectLiveKit();
+        }
+      }
+    };
+  }, [p2pLocalStream, liveKitLocalStream, isConnected, p2pIsConnected, liveKitIsConnected, isP2PCall, endWebRTC, disconnectLiveKit]);
   const error = isP2PCall ? p2pError : liveKitError;
   const toggleVideo = isP2PCall ? p2pToggleVideo : liveKitToggleVideo;
   const toggleAudio = isP2PCall ? p2pToggleAudio : liveKitToggleAudio;
