@@ -541,9 +541,30 @@ ipcMain.handle('restart-and-install-update', () => {
   return { success: true };
 });
 
-// Get app version
+// Get app version from package.json
 ipcMain.handle('get-app-version', () => {
-  return app.getVersion();
+  try {
+    // Try to read from the electron package.json (in production, it's in resources/app)
+    let pkgJsonPath;
+    if (isDev) {
+      // In dev, package.json is in the electron directory
+      pkgJsonPath = path.join(__dirname, '..', 'package.json');
+    } else {
+      // In production, package.json is in resources/app
+      pkgJsonPath = path.join(app.getAppPath(), 'package.json');
+    }
+    
+    if (fs.existsSync(pkgJsonPath)) {
+      const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+      return pkgJson.version || '0.0.0';
+    }
+    
+    // Fallback to app.getVersion() if package.json not found
+    return app.getVersion();
+  } catch (error) {
+    console.error('[IPC] Error reading package.json version:', error);
+    return app.getVersion();
+  }
 });
 
 // Request media permissions - for testing/debugging
