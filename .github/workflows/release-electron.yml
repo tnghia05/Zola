@@ -25,6 +25,11 @@ jobs:
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
+          
+      - name: Install renderer dependencies
+        working-directory: apps/electron/renderer
+        run: |
+          pnpm install
 
       - name: Build and publish Electron installer
         env:
