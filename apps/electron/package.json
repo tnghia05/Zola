@@ -1,6 +1,6 @@
 {
   "name": "zola-electron",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "private": true,
   "main": "main/main.js",
   "scripts": {
