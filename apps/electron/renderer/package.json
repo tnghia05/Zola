@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc -b",
-    "build": "pnpm exec vite build",
+    "build": "npx vite build",
     "preview": "vite preview"
   },
   "keywords": [],
