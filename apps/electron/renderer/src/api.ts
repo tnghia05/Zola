@@ -4,6 +4,16 @@ import axios, { type AxiosRequestHeaders } from 'axios';
 const DIRECT_BACKEND_URL = 'https://backend36.dev';
 export const API_URL = DIRECT_BACKEND_URL;
 
+// Log API configuration on module load
+if (typeof window !== 'undefined') {
+	console.log('📡 [API] Config:', {
+		protocol: window.location?.protocol,
+		hostname: window.location?.hostname,
+		isElectron: true, // This file is only used in Electron
+		API_URL: API_URL
+	});
+}
+
 // LocalStorage wrapper (replaces AsyncStorage)
 const storage = {
   getItem: (key: string): Promise<string | null> => {

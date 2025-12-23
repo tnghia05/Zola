@@ -3,19 +3,36 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Use Vercel proxy for web to avoid CORS issues
 // Direct backend URL has CORS restrictions on Vercel domain
 const DIRECT_BACKEND_URL = 'https://backend36.dev';
+
+// IMMEDIATE Electron detection - runs FIRST before anything else
+const _isElectron = (() => {
+	if (typeof window === 'undefined') return false;
+	// Check for electronAPI first (most reliable)
+	if (window.electronAPI) return true;
+	// Check process.type (Electron-specific)
+	if (window.process?.type === 'renderer') return true;
+	const p = window.location?.protocol || '';
+	const h = window.location?.hostname || '';
+	const ua = (window.navigator?.userAgent || '').toLowerCase();
+	// Electron uses app:// or file:// protocol, or hostname is 'renderer'
+	return p === 'app:' || p === 'file:' || h === 'renderer' || ua.includes('electron');
+})();
+
 const isWeb = typeof window !== 'undefined';
 const isLocalhost = isWeb && window?.location?.hostname && /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))$/.test(window.location.hostname);
 // Force use proxy for LAN IPs to avoid CORS issues
 const isLAN = isWeb && window?.location?.hostname && /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))$/.test(window.location.hostname);
 // Check if using ngrok tunnel
 const isNgrok = isWeb && window?.location?.hostname && window.location.hostname.includes('ngrok');
-// Always use direct backend for development (proxy only works in production)
-const isProduction = isWeb && window?.location?.hostname && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))/) && !isNgrok && !window.location.hostname.includes('ngrok');
-export const API_URL = isWeb ? (isProduction ? '/api' : DIRECT_BACKEND_URL) : DIRECT_BACKEND_URL;
+// FOR ELECTRON: ALWAYS use direct backend - NO PROXY
+// Only use /api proxy for production Vercel web (https:// with real hostname)
+const isProduction = isWeb && !_isElectron && window?.location?.hostname && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))/) && !isNgrok && !window.location.hostname.includes('ngrok') && window.location?.protocol === 'https:';
+export const API_URL = _isElectron ? DIRECT_BACKEND_URL : (isWeb ? (isProduction ? '/api' : DIRECT_BACKEND_URL) : DIRECT_BACKEND_URL);
 // Debug logging
 if (isWeb && window?.location?.hostname) {
     console.log('🌐 Web environment detected');
     console.log('🔍 window.location.hostname:', window.location.hostname);
+    console.log('🔍 isElectron:', _isElectron);
     console.log('🔍 isLocalhost:', isLocalhost);
     console.log('🔍 isLAN:', isLAN);
     console.log('🔍 isNgrok:', isNgrok);

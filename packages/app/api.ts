@@ -1,27 +1,44 @@
 import axios from 'axios';
 
-// Use Vercel proxy for web to avoid CORS issues
-// Direct backend URL has CORS restrictions on Vercel domain
+// ============================================
+// CRITICAL: API URL CONFIGURATION
+// ============================================
 const DIRECT_BACKEND_URL = 'https://backend36.dev';
-const isWeb = typeof window !== 'undefined';
-const isLocalhost = isWeb && window?.location?.hostname && /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))$/.test(window.location.hostname);
-// Force use proxy for LAN IPs to avoid CORS issues
-const isLAN = isWeb && window?.location?.hostname && /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))$/.test(window.location.hostname);
-// Check if using ngrok tunnel
-const isNgrok = isWeb && window?.location?.hostname && window.location.hostname.includes('ngrok');
-// Always use direct backend for development (proxy only works in production)
-const isProduction = isWeb && window?.location?.hostname && !window.location.hostname.includes('localhost') && !window.location.hostname.match(/^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))/) && !isNgrok && !window.location.hostname.includes('ngrok');
-export const API_URL = isWeb ? (isProduction ? '/api' : DIRECT_BACKEND_URL) : DIRECT_BACKEND_URL;
 
-// Debug logging
-if (isWeb && window?.location?.hostname) {
-	console.log('🌐 Web environment detected');
-	console.log('🔍 window.location.hostname:', window.location.hostname);
-	console.log('🔍 isLocalhost:', isLocalhost);
-	console.log('🔍 isLAN:', isLAN);
-	console.log('🔍 isNgrok:', isNgrok);
-	console.log('🔍 isProduction:', isProduction);
-	console.log('🔍 API_URL:', API_URL);
+// IMMEDIATE Electron detection - runs FIRST before anything else
+const _isElectron = (() => {
+	if (typeof window === 'undefined') return false;
+	// Check for electronAPI first (most reliable)
+	if ((window as any).electronAPI) return true;
+	// Check process.type (Electron-specific)
+	if ((window as any).process?.type === 'renderer') return true;
+	const p = window.location?.protocol || '';
+	const h = window.location?.hostname || '';
+	const ua = (window.navigator?.userAgent || '').toLowerCase();
+	// Electron uses app:// or file:// protocol, or hostname is 'renderer'
+	return p === 'app:' || p === 'file:' || h === 'renderer' || ua.includes('electron');
+})();
+
+// FOR ELECTRON: ALWAYS use direct backend - NO PROXY
+// Only use /api proxy for production Vercel web (https:// with real hostname)
+const _isVercelProd = typeof window !== 'undefined' && 
+	!_isElectron &&
+	window.location?.protocol === 'https:' &&
+	window.location?.hostname &&
+	!window.location.hostname.includes('localhost') &&
+	!/^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1]))/.test(window.location.hostname);
+
+export const API_URL = _isVercelProd ? '/api' : DIRECT_BACKEND_URL;
+
+// Log configuration
+if (typeof window !== 'undefined') {
+	console.log('📡 [API] Config:', { 
+		protocol: window.location?.protocol,
+		hostname: window.location?.hostname,
+		isElectron: _isElectron, 
+		isVercelProd: _isVercelProd,
+		API_URL 
+	});
 }
 
 export const api = axios.create({
@@ -37,11 +54,38 @@ if (typeof window !== "undefined") {
 	}
 }
 
+// Runtime Electron detection function (called at request time, not module load time)
+function isRunningInElectron(): boolean {
+	if (typeof window === 'undefined') return false;
+	try {
+		// Check multiple indicators at runtime
+		const ua = window.navigator?.userAgent || '';
+		const protocol = window.location?.protocol || '';
+		return (
+			ua.toLowerCase().includes('electron') ||
+			protocol === 'app:' ||
+			protocol === 'file:' ||
+			!!(window as any).electronAPI ||
+			!!(window as any).process?.type
+		);
+	} catch {
+		return false;
+	}
+}
+
 // Add request interceptor for debugging
 api.interceptors.request.use(
 	(config) => {
-		// Ensure token is set from localStorage on each request
+		// CRITICAL: Override baseURL at runtime for Electron apps
+		// This ensures the correct URL is used even if module was bundled with wrong value
 		if (typeof window !== "undefined") {
+			const inElectron = isRunningInElectron();
+			if (inElectron && (config.baseURL === '/api' || !config.baseURL?.startsWith('http'))) {
+				console.log('🔄 [Electron] Overriding baseURL from', config.baseURL, 'to', DIRECT_BACKEND_URL);
+				config.baseURL = DIRECT_BACKEND_URL;
+			}
+			
+			// Ensure token is set from localStorage on each request
 			const token = window.localStorage.getItem("auth_token");
 			if (token && !config.headers.Authorization) {
 				config.headers.Authorization = `Bearer ${token}`;

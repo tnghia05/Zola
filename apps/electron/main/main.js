@@ -1,8 +1,12 @@
-const { app, BrowserWindow, ipcMain, session, Notification, Tray, Menu, protocol, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, session, Notification, Tray, Menu, protocol, desktopCapturer, globalShortcut } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+// Ignore SSL certificate errors (for self-signed certs in dev/testing)
+// In production, you should handle this more carefully
+app.commandLine.appendSwitch('ignore-certificate-errors');
 
 let mainWindow;
 let tray = null;
@@ -304,11 +308,28 @@ function setupPermissions() {
     // Allow all requests, especially to external APIs
     callback({});
   });
+
+  // Handle SSL certificate errors - allow self-signed certs in development/testing
+  app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+    console.log('[SSL] Certificate error for:', url, 'Error:', error);
+    // In development or for known backend URLs, allow the request
+    if (url.includes('backend36.dev') || url.includes('localhost') || isDev) {
+      console.log('[SSL] Allowing certificate for:', url);
+      event.preventDefault();
+      callback(true);
+    } else {
+      callback(false);
+    }
+  });
   
   // Fix CORS headers for API requests
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     // Only modify headers for API requests (not local files)
     if (details.url.startsWith('http://') || details.url.startsWith('https://')) {
+      // Log network requests for debugging
+      if (details.url.includes('backend36.dev')) {
+        console.log('[NETWORK] API Response:', details.url, 'Status:', details.statusCode);
+      }
       callback({
         responseHeaders: {
           ...details.responseHeaders,
@@ -320,6 +341,17 @@ function setupPermissions() {
       });
     } else {
       callback({ responseHeaders: details.responseHeaders });
+    }
+  });
+  
+  // Handle network errors - log them for debugging
+  session.defaultSession.webRequest.onErrorOccurred((details) => {
+    if (details.url.includes('backend36.dev') || details.url.includes('https://')) {
+      console.error('[NETWORK ERROR]', {
+        url: details.url,
+        error: details.error,
+        resourceType: details.resourceType,
+      });
     }
   });
   
@@ -370,6 +402,29 @@ function createWindow() {
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Register F12 shortcut to open DevTools in production
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    // F12 to toggle DevTools
+    if (input.key === 'F12') {
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+      } else {
+        mainWindow.webContents.openDevTools();
+      }
+      event.preventDefault();
+    }
+    // Ctrl+Shift+I to open DevTools (alternative)
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      mainWindow.webContents.openDevTools();
+      event.preventDefault();
+    }
+    // Ctrl+Shift+R to force reload
+    if (input.control && input.shift && input.key.toLowerCase() === 'r') {
+      mainWindow.webContents.reloadIgnoringCache();
+      event.preventDefault();
+    }
+  });
 
   // Log console messages from renderer
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
